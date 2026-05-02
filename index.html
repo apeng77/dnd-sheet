@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>D&D Character Sheet v15</title>
+  <title>D&D Character Sheet v16</title>
   <style>
     :root {
       --bg: #111827;
@@ -583,13 +583,6 @@
       margin-top: 8px;
     }
 
-    
-    
-    
-    
-    
-    
-
     .cast-slot-btn {
       padding: 8px 10px;
       min-height: 38px;
@@ -794,7 +787,7 @@
   </div>
 
   <div class="container" id="app">
-    <h1>D&D Character Sheet v15</h1>
+    <h1>D&D Character Sheet v16</h1>
 
     <div class="combat-toggle">
       <input type="checkbox" id="combatMode">
@@ -1234,8 +1227,7 @@
         <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
-        <p class="hint">Spell slot maxes, cantrip limits, prepared spell limits, and spellcasting ability update from your class and level. Artificer prepared spells use INT mod + half level.</p>
-        
+        <p class="hint">Spell slot maxes auto-update from your class and level. Tap bubbles to mark used slots.</p>
         <div id="spellSlotSection"></div>
       </div>
     </div>
@@ -1582,7 +1574,7 @@
     };
 
     const halfCasterSlots = {
-      1:[2,0,0,0,0,0,0,0,0], 2:[2,0,0,0,0,0,0,0,0], 3:[3,0,0,0,0,0,0,0,0], 4:[3,0,0,0,0,0,0,0,0],
+      1:[0,0,0,0,0,0,0,0,0], 2:[2,0,0,0,0,0,0,0,0], 3:[3,0,0,0,0,0,0,0,0], 4:[3,0,0,0,0,0,0,0,0],
       5:[4,2,0,0,0,0,0,0,0], 6:[4,2,0,0,0,0,0,0,0], 7:[4,3,0,0,0,0,0,0,0], 8:[4,3,0,0,0,0,0,0,0],
       9:[4,3,2,0,0,0,0,0,0], 10:[4,3,2,0,0,0,0,0,0], 11:[4,3,3,0,0,0,0,0,0], 12:[4,3,3,0,0,0,0,0,0],
       13:[4,3,3,1,0,0,0,0,0], 14:[4,3,3,1,0,0,0,0,0], 15:[4,3,3,2,0,0,0,0,0], 16:[4,3,3,2,0,0,0,0,0],
@@ -1605,8 +1597,53 @@
     };
 
 
-
-    
+    const featurePresets = {
+      "Barbarian": [
+        { name: "Rage", action: "Bonus Action", maxUses: 2, reset: "Long Rest", description: "Enter rage. Track damage bonus/resistance based on your table rules." },
+        { name: "Reckless Attack", action: "Free / Passive", maxUses: 0, reset: "No Reset", description: "Choose to attack recklessly for advantage, but attacks against you may have advantage." }
+      ],
+      "Bard": [
+        { name: "Bardic Inspiration", action: "Bonus Action", maxUses: 2, reset: "Long Rest", description: "Give an inspiration die to a creature. Adjust max uses if your Charisma changes." },
+        { name: "Jack of All Trades", action: "Free / Passive", maxUses: 0, reset: "No Reset", description: "Add half proficiency to ability checks you are not proficient in." }
+      ],
+      "Cleric": [
+        { name: "Channel Divinity", action: "Action", maxUses: 1, reset: "Short Rest", description: "Use a Channel Divinity option from your subclass or class." },
+        { name: "Turn Undead", action: "Action", maxUses: 0, reset: "No Reset", description: "Uses Channel Divinity." }
+      ],
+      "Druid": [
+        { name: "Wild Shape", action: "Bonus Action", maxUses: 2, reset: "Short Rest", description: "Transform using Wild Shape. Adjust if your table uses different timing." }
+      ],
+      "Fighter": [
+        { name: "Second Wind", action: "Bonus Action", maxUses: 1, reset: "Short Rest", description: "Regain hit points. Roll based on your class rules." },
+        { name: "Action Surge", action: "Free / Passive", maxUses: 1, reset: "Short Rest", description: "Take an additional action on your turn." }
+      ],
+      "Monk": [
+        { name: "Focus Points", action: "Other", maxUses: 1, reset: "Short Rest", description: "Track your Focus/Discipline points here. Set max uses equal to your current amount." }
+      ],
+      "Paladin": [
+        { name: "Lay on Hands", action: "Action", maxUses: 1, reset: "Long Rest", description: "Track your healing pool manually in the notes or max uses." },
+        { name: "Divine Smite", action: "Free / Passive", maxUses: 0, reset: "No Reset", description: "Uses spell slots. Tap spell slots when you smite." }
+      ],
+      "Ranger": [
+        { name: "Hunter's Mark", action: "Bonus Action", maxUses: 1, reset: "Long Rest", description: "Track free uses or spell slot use depending on your table rules." }
+      ],
+      "Rogue": [
+        { name: "Sneak Attack", action: "Free / Passive", maxUses: 1, reset: "Turn", description: "Once per turn, deal extra damage when conditions are met. Use reset manually each turn if needed." },
+        { name: "Cunning Action", action: "Bonus Action", maxUses: 0, reset: "No Reset", description: "Dash, Disengage, or Hide as a bonus action." }
+      ],
+      "Sorcerer": [
+        { name: "Sorcery Points", action: "Other", maxUses: 2, reset: "Long Rest", description: "Track sorcery points. Set max uses to your current maximum." }
+      ],
+      "Warlock": [
+        { name: "Pact Magic Slots", action: "Other", maxUses: 0, reset: "Short Rest", description: "Warlock spell slots reset on short rest. The rest automation resets spell bubbles for Warlock." }
+      ],
+      "Wizard": [
+        { name: "Arcane Recovery", action: "Other", maxUses: 1, reset: "Long Rest", description: "Once per day when finishing a short rest, recover spell slots." }
+      ],
+      "Artificer": [
+        { name: "Infuse Item", action: "Other", maxUses: 0, reset: "Long Rest", description: "Track active infusions and item choices in notes." }
+      ]
+    };
 
     function formatBonus(num) {
       return num >= 0 ? "+" + num : String(num);
@@ -1682,7 +1719,7 @@
 
     function getSpellAbility() {
       const className = document.getElementById("class").value;
-      return spellLimitsByClass[className]?.ability || classPresets[className]?.spellAbility || document.getElementById("newSpellAbility")?.value || "cha";
+      return classPresets[className]?.spellAbility || document.getElementById("newSpellAbility")?.value || "cha";
     }
 
     function hasSpellcastingClass() {
@@ -1697,43 +1734,6 @@
 
     function getSpellSaveDc() {
       return 8 + getAbilityMod(getSpellAbility()) + getProfBonus();
-    }
-
-    ;
-      }
-
-      let prepared = 0;
-
-      if (limits.preparedFormula === "artificer") {
-        prepared = Math.max(1, getAbilityMod("int") + Math.ceil(level / 2));
-      } else {
-        prepared = limits.prepared?.[level - 1] || 0;
-      }
-
-      return {
-        ability: limits.ability,
-        cantrips: limits.cantrips[level - 1] || 0,
-        prepared
-      };
-    }
-
-    
-
-    
-
-     else {
-        document.getElementById("").textContent = formatBonus(getSpellAttackBonus());
-        document.getElementById("").textContent = getSpellSaveDc();
-      }
-
-      const cantripEl = document.getElementById("");
-      const preparedEl = document.getElementById("");
-
-      cantripEl.textContent = `${cantripCount}/${limits.cantrips}`;
-      preparedEl.textContent = `${preparedCount}/${limits.prepared}`;
-
-      cantripEl.className = "spell-limit-value " + (cantripCount > limits.cantrips ? "limit-bad" : cantripCount === limits.cantrips ? "limit-warn" : "limit-good");
-      preparedEl.className = "spell-limit-value " + (preparedCount > limits.prepared ? "limit-bad" : preparedCount === limits.prepared ? "limit-warn" : "limit-good");
     }
 
     function createCalculatedRows() {
@@ -1899,31 +1899,17 @@
     function addSpell() {
       const diceValue = document.getElementById("newSpellDice").value;
       const customDice = document.getElementById("newSpellCustomDice").value.trim();
-      const newSpellLevel = document.getElementById("newSpellLevel").value;
-      const isPrepared = document.getElementById("newSpellPrepared").value === "yes";
-      
-      }
-
-      if (newSpellLevel === "Cantrip" && getCurrentCantripCount() >= limits.cantrips) {
-        const proceed = confirm(`Cantrip limit reached for your class and level (${limits.cantrips}). Add anyway? This can be useful for feats, species traits, or magic items.`);
-        if (!proceed) return;
-      }
-
-      if (newSpellLevel !== "Cantrip" && isPrepared && getCurrentPreparedCount() >= limits.prepared) {
-        const proceed = confirm(`Prepared spell limit reached for your class and level (${limits.prepared}). Add anyway? Use this only for always-prepared subclass/feature spells.`);
-        if (!proceed) return;
-      }
 
       const spell = {
         id: Date.now(),
         name: document.getElementById("newSpellName").value.trim() || "Unnamed Spell",
-        level: newSpellLevel,
+        level: document.getElementById("newSpellLevel").value,
         kind: document.getElementById("newSpellKind").value,
         ability: document.getElementById("newSpellAbility").value,
         dice: diceValue === "custom" ? (customDice || "") : diceValue,
         type: document.getElementById("newSpellType").value,
         notes: document.getElementById("newSpellNotes").value.trim(),
-        prepared: isPrepared,
+        prepared: document.getElementById("newSpellPrepared").value === "yes",
         concentration: document.getElementById("newSpellConcentration").value === "yes",
         duration: document.getElementById("newSpellDuration").value.trim()
       };
@@ -1946,7 +1932,6 @@
     function deleteSpell(id) {
       spells = spells.filter(spell => spell.id !== id);
       renderSpells();
-      
       saveData();
     }
 
@@ -1956,12 +1941,9 @@
       container.innerHTML = "";
 
       if (spells.length === 0) {
-        
         container.innerHTML = `<p class="hint">No spells or cantrips added yet.</p>`;
         return;
       }
-
-      
 
       spells.forEach(spell => {
         const spellAttackBonus = getAbilityMod(spell.ability) + getProfBonus();
@@ -2447,7 +2429,7 @@
       });
 
       const spellAbility = document.getElementById("newSpellAbility");
-      if (spellAbility) spellAbility.value = spellLimitsByClass[className]?.ability || preset.spellAbility;
+      if (spellAbility) spellAbility.value = preset.spellAbility;
 
       document.getElementById("hitDiceAvailable").value = getCleanLevel();
       applySpellSlotsFromClassLevel();
@@ -2484,7 +2466,6 @@
       updatePassives();
       renderAttacks();
       updateSpellSlots();
-      
       updateStickyBar();
     }
 
@@ -2890,11 +2871,11 @@
           collapsed.push(card.dataset.section);
         }
       });
-      localStorage.setItem("dndSheetV9Collapsed", JSON.stringify(collapsed));
+      localStorage.setItem("dndSheetV16Collapsed", JSON.stringify(collapsed));
     }
 
     function loadCollapsedSections() {
-      const saved = localStorage.getItem("dndSheetV9Collapsed");
+      const saved = localStorage.getItem("dndSheetV16Collapsed");
       if (!saved) return;
 
       const collapsed = JSON.parse(saved);
@@ -2912,8 +2893,8 @@
       const confirmReset = confirm("Are you sure you want to reset this character sheet?");
       if (!confirmReset) return;
 
-      localStorage.removeItem("dndCharacterSheetV9");
-      localStorage.removeItem("dndSheetV9Collapsed");
+      localStorage.removeItem("dndCharacterSheetV16");
+      localStorage.removeItem("dndSheetV16Collapsed");
       location.reload();
     }
 
@@ -2954,12 +2935,12 @@
         data[`spell${level}_used`] = getUsedSpellSlots(level);
       });
 
-      localStorage.setItem("dndCharacterSheetV9", JSON.stringify(data));
+      localStorage.setItem("dndCharacterSheetV16", JSON.stringify(data));
       updateStickyBar();
     }
 
     function loadData() {
-      const saved = localStorage.getItem("dndCharacterSheetV9");
+      const saved = localStorage.getItem("dndCharacterSheetV16");
       if (!saved) return;
 
       const data = JSON.parse(saved);
