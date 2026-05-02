@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>D&D Character Sheet v3</title>
+  <title>D&D Character Sheet v4</title>
   <style>
     :root {
       --bg: #111827;
@@ -98,11 +98,15 @@
       margin: 0;
     }
 
-    .collapse-btn {
-      background: #4b5563;
-      padding: 7px 10px;
+    .collapse-arrow {
+      background: transparent;
+      color: #d1d5db;
+      border: none;
+      padding: 0;
       margin: 0;
-      font-size: 13px;
+      font-size: 24px;
+      line-height: 1;
+      cursor: pointer;
     }
 
     .section-content {
@@ -187,6 +191,7 @@
     .success { background: var(--green); }
     .warning { background: var(--yellow); color: #111827; }
     .purple { background: var(--purple); }
+    .ghost { background: #4b5563; }
 
     .small-buttons button {
       width: auto;
@@ -299,20 +304,44 @@
       margin: 0;
     }
 
-    .attack-card {
+    .attack-builder-panel {
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 14px;
+    }
+
+    .attack-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .saved-attack {
       background: var(--input);
       border-radius: 10px;
       padding: 12px;
-      margin-bottom: 12px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
     }
 
-    .attack-output {
-      margin-top: 10px;
-      background: #111827;
-      border-radius: 8px;
-      padding: 10px;
-      color: #bfdbfe;
+    .saved-attack-main {
       font-weight: bold;
+      color: #bfdbfe;
+    }
+
+    .saved-attack-sub {
+      color: #d1d5db;
+      font-size: 14px;
+      margin-top: 3px;
+    }
+
+    .mini-button {
+      padding: 7px 10px;
+      font-size: 13px;
+      margin: 0 0 0 5px;
     }
 
     .spell-slot-row {
@@ -362,6 +391,12 @@
       font-weight: bold;
     }
 
+    .rest-result {
+      margin-top: 10px;
+      color: #bfdbfe;
+      font-weight: bold;
+    }
+
     .footer {
       text-align: center;
       color: var(--hint);
@@ -390,6 +425,10 @@
       .calc-row {
         grid-template-columns: 30px 30px 1fr 48px;
       }
+
+      .saved-attack {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -405,7 +444,7 @@
   </div>
 
   <div class="container" id="app">
-    <h1>D&D Character Sheet v3</h1>
+    <h1>D&D Character Sheet v4</h1>
 
     <div class="combat-toggle">
       <input type="checkbox" id="combatMode">
@@ -416,7 +455,7 @@
     <div class="card non-combat" data-section="character">
       <div class="section-header" onclick="toggleSection(this)">
         <h2>Character Info</h2>
-        <button class="collapse-btn">Collapse</button>
+        <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
         <div class="grid">
@@ -451,7 +490,7 @@
     <div class="card" data-section="mainStats">
       <div class="section-header" onclick="toggleSection(this)">
         <h2>Main Stats</h2>
-        <button class="collapse-btn">Collapse</button>
+        <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
         <div class="grid">
@@ -482,7 +521,7 @@
     <div class="card" data-section="hp">
       <div class="section-header" onclick="toggleSection(this)">
         <h2>Hit Points</h2>
-        <button class="collapse-btn">Collapse</button>
+        <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
         <div class="grid">
@@ -498,6 +537,19 @@
             <label>Temp HP</label>
             <input id="tempHp" type="number" value="0">
           </div>
+          <div>
+            <label>Hit Dice</label>
+            <select id="hitDie">
+              <option value="6">d6</option>
+              <option value="8">d8</option>
+              <option value="10">d10</option>
+              <option value="12">d12</option>
+            </select>
+          </div>
+          <div>
+            <label>Hit Dice Available</label>
+            <input id="hitDiceAvailable" type="number" min="0" value="1">
+          </div>
         </div>
 
         <div class="small-buttons">
@@ -505,9 +557,11 @@
           <button onclick="changeHp(5)">+5 HP</button>
           <button onclick="changeHp(-1)" class="danger">-1 HP</button>
           <button onclick="changeHp(-5)" class="danger">-5 HP</button>
-          <button onclick="shortRest()" class="warning">Short Rest</button>
+          <button onclick="shortRest()" class="warning">Short Rest Roll</button>
           <button onclick="longRest()" class="success">Long Rest</button>
         </div>
+
+        <div class="rest-result" id="restResult"></div>
 
         <h3>Death Saves</h3>
         <div class="death-row">
@@ -532,7 +586,7 @@
     <div class="card non-combat" data-section="abilities">
       <div class="section-header" onclick="toggleSection(this)">
         <h2>Ability Scores</h2>
-        <button class="collapse-btn">Collapse</button>
+        <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
         <div class="grid">
@@ -573,7 +627,7 @@
     <div class="card non-combat" data-section="saves">
       <div class="section-header" onclick="toggleSection(this)">
         <h2>Saving Throws</h2>
-        <button class="collapse-btn">Collapse</button>
+        <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
         <p class="hint">Check the box if your character is proficient.</p>
@@ -584,7 +638,7 @@
     <div class="card non-combat" data-section="skills">
       <div class="section-header" onclick="toggleSection(this)">
         <h2>Skills</h2>
-        <button class="collapse-btn">Collapse</button>
+        <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
         <p class="hint">P = proficient. E = expertise, which doubles proficiency.</p>
@@ -595,7 +649,7 @@
     <div class="card non-combat" data-section="passives">
       <div class="section-header" onclick="toggleSection(this)">
         <h2>Passive Scores</h2>
-        <button class="collapse-btn">Collapse</button>
+        <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
         <div class="passive-grid">
@@ -617,20 +671,92 @@
 
     <div class="card" data-section="attacks">
       <div class="section-header" onclick="toggleSection(this)">
-        <h2>Attack Builder</h2>
-        <button class="collapse-btn">Collapse</button>
+        <h2>Attacks</h2>
+        <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
-        <p class="hint">Add up to 3 attacks. It auto-calculates hit bonus and damage modifier.</p>
+        <div class="attack-builder-panel">
+          <h3>Add Attack</h3>
+          <div class="grid-wide">
+            <div>
+              <label>Attack Name</label>
+              <input id="newAttackName" placeholder="Ex: Longsword">
+            </div>
+            <div>
+              <label>Ability</label>
+              <select id="newAttackAbility">
+                <option value="str">Strength</option>
+                <option value="dex">Dexterity</option>
+                <option value="con">Constitution</option>
+                <option value="int">Intelligence</option>
+                <option value="wis">Wisdom</option>
+                <option value="cha">Charisma</option>
+              </select>
+            </div>
+            <div>
+              <label>Proficient?</label>
+              <select id="newAttackProf">
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+            <div>
+              <label>Magic / Misc Hit Bonus</label>
+              <input id="newAttackHitMisc" type="number" value="0">
+            </div>
+            <div>
+              <label>Damage Dice</label>
+              <select id="newAttackDice">
+                <option value="1d4">1d4</option>
+                <option value="1d6">1d6</option>
+                <option value="1d8">1d8</option>
+                <option value="1d10">1d10</option>
+                <option value="1d12">1d12</option>
+                <option value="2d4">2d4</option>
+                <option value="2d6">2d6</option>
+                <option value="2d8">2d8</option>
+                <option value="3d6">3d6</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div id="customDiceWrap" style="display:none;">
+              <label>Custom Damage Dice</label>
+              <input id="newAttackCustomDice" placeholder="Ex: 4d6">
+            </div>
+            <div>
+              <label>Damage Type</label>
+              <select id="newAttackType">
+                <option value="slashing">Slashing</option>
+                <option value="piercing">Piercing</option>
+                <option value="bludgeoning">Bludgeoning</option>
+                <option value="acid">Acid</option>
+                <option value="cold">Cold</option>
+                <option value="fire">Fire</option>
+                <option value="force">Force</option>
+                <option value="lightning">Lightning</option>
+                <option value="necrotic">Necrotic</option>
+                <option value="poison">Poison</option>
+                <option value="psychic">Psychic</option>
+                <option value="radiant">Radiant</option>
+                <option value="thunder">Thunder</option>
+              </select>
+            </div>
+            <div>
+              <label>Damage Misc Bonus</label>
+              <input id="newAttackDmgMisc" type="number" value="0">
+            </div>
+          </div>
+          <button onclick="addAttack()" class="success">Add Attack</button>
+        </div>
 
-        <div id="attackBuilder"></div>
+        <div class="attack-list" id="attackList"></div>
       </div>
     </div>
 
     <div class="card" data-section="conditions">
       <div class="section-header" onclick="toggleSection(this)">
         <h2>Condition Tracker</h2>
-        <button class="collapse-btn">Collapse</button>
+        <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
         <div class="condition-grid" id="conditionGrid"></div>
@@ -640,7 +766,7 @@
     <div class="card non-combat" data-section="features">
       <div class="section-header" onclick="toggleSection(this)">
         <h2>Features & Traits</h2>
-        <button class="collapse-btn">Collapse</button>
+        <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
         <textarea id="features" placeholder="Class features, racial traits, feats, etc."></textarea>
@@ -650,7 +776,7 @@
     <div class="card non-combat" data-section="spells">
       <div class="section-header" onclick="toggleSection(this)">
         <h2>Spell Slots</h2>
-        <button class="collapse-btn">Collapse</button>
+        <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
         <p class="hint">Set the max slots, then tap bubbles to mark used slots.</p>
@@ -664,7 +790,7 @@
     <div class="card non-combat" data-section="inventory">
       <div class="section-header" onclick="toggleSection(this)">
         <h2>Inventory & Notes</h2>
-        <button class="collapse-btn">Collapse</button>
+        <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
         <label>Inventory</label>
@@ -678,7 +804,7 @@
     <div class="card" data-section="dice">
       <div class="section-header" onclick="toggleSection(this)">
         <h2>Dice Roller</h2>
-        <button class="collapse-btn">Collapse</button>
+        <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
         <button onclick="rollDice(4)">Roll d4</button>
@@ -703,11 +829,12 @@
 
   <script>
     const abilities = ["str", "dex", "con", "int", "wis", "cha"];
+    let attacks = [];
 
     const basicFields = [
       "name", "player", "race", "class", "level", "background",
       "ac", "initiativeMisc", "speed", "prof",
-      "currentHp", "maxHp", "tempHp",
+      "currentHp", "maxHp", "tempHp", "hitDie", "hitDiceAvailable",
       "str", "dex", "con", "int", "wis", "cha",
       "features", "spells", "inventory", "notes",
       "combatMode",
@@ -752,7 +879,6 @@
     ];
 
     const spellLevels = [1,2,3,4,5,6,7,8,9];
-    const attackCount = 3;
 
     function formatBonus(num) {
       return num >= 0 ? "+" + num : String(num);
@@ -858,60 +984,6 @@
       });
     }
 
-    function createAttackBuilder() {
-      const container = document.getElementById("attackBuilder");
-
-      for (let i = 1; i <= attackCount; i++) {
-        const box = document.createElement("div");
-        box.className = "attack-card";
-        box.innerHTML = `
-          <h3>Attack ${i}</h3>
-          <div class="grid-wide">
-            <div>
-              <label>Attack Name</label>
-              <input id="attack${i}_name" placeholder="Ex: Longsword">
-            </div>
-            <div>
-              <label>Ability</label>
-              <select id="attack${i}_ability">
-                <option value="str">Strength</option>
-                <option value="dex">Dexterity</option>
-                <option value="con">Constitution</option>
-                <option value="int">Intelligence</option>
-                <option value="wis">Wisdom</option>
-                <option value="cha">Charisma</option>
-              </select>
-            </div>
-            <div>
-              <label>Proficient?</label>
-              <select id="attack${i}_prof">
-                <option value="yes">Yes</option>
-                <option value="no">No</option>
-              </select>
-            </div>
-            <div>
-              <label>Magic / Misc Hit Bonus</label>
-              <input id="attack${i}_hitMisc" type="number" value="0">
-            </div>
-            <div>
-              <label>Damage Dice</label>
-              <input id="attack${i}_dice" placeholder="Ex: 1d8">
-            </div>
-            <div>
-              <label>Damage Type</label>
-              <input id="attack${i}_type" placeholder="Ex: slashing">
-            </div>
-            <div>
-              <label>Damage Misc Bonus</label>
-              <input id="attack${i}_dmgMisc" type="number" value="0">
-            </div>
-          </div>
-          <div class="attack-output" id="attack${i}_output">Attack output will appear here.</div>
-        `;
-        container.appendChild(box);
-      }
-    }
-
     function createSpellSlots() {
       const container = document.getElementById("spellSlotSection");
 
@@ -935,6 +1007,70 @@
       });
     }
 
+    function addAttack() {
+      const diceValue = document.getElementById("newAttackDice").value;
+      const customDice = document.getElementById("newAttackCustomDice").value.trim();
+
+      const attack = {
+        id: Date.now(),
+        name: document.getElementById("newAttackName").value.trim() || "Unnamed Attack",
+        ability: document.getElementById("newAttackAbility").value,
+        proficient: document.getElementById("newAttackProf").value === "yes",
+        hitMisc: Number(document.getElementById("newAttackHitMisc").value) || 0,
+        dice: diceValue === "custom" ? (customDice || "1d6") : diceValue,
+        type: document.getElementById("newAttackType").value,
+        dmgMisc: Number(document.getElementById("newAttackDmgMisc").value) || 0
+      };
+
+      attacks.push(attack);
+
+      document.getElementById("newAttackName").value = "";
+      document.getElementById("newAttackHitMisc").value = 0;
+      document.getElementById("newAttackDmgMisc").value = 0;
+      document.getElementById("newAttackCustomDice").value = "";
+      document.getElementById("newAttackDice").value = "1d8";
+      document.getElementById("customDiceWrap").style.display = "none";
+
+      renderAttacks();
+      saveData();
+    }
+
+    function deleteAttack(id) {
+      attacks = attacks.filter(attack => attack.id !== id);
+      renderAttacks();
+      saveData();
+    }
+
+    function renderAttacks() {
+      const container = document.getElementById("attackList");
+      container.innerHTML = "";
+
+      if (attacks.length === 0) {
+        container.innerHTML = `<p class="hint">No attacks added yet.</p>`;
+        return;
+      }
+
+      attacks.forEach(attack => {
+        const abilityMod = getAbilityMod(attack.ability);
+        const hitBonus = abilityMod + (attack.proficient ? getProfBonus() : 0) + attack.hitMisc;
+        const dmgBonus = abilityMod + attack.dmgMisc;
+        const dmgText = `${attack.dice}${dmgBonus === 0 ? "" : formatBonus(dmgBonus)} ${attack.type}`;
+
+        const div = document.createElement("div");
+        div.className = "saved-attack";
+        div.innerHTML = `
+          <div>
+            <div class="saved-attack-main">${attack.name}: ${formatBonus(hitBonus)} to hit</div>
+            <div class="saved-attack-sub">${dmgText} • ${attack.ability.toUpperCase()} ${attack.proficient ? "• Proficient" : ""}</div>
+          </div>
+          <div>
+            <button class="mini-button danger" onclick="deleteAttack(${attack.id})">Delete</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
     function updateModifiers() {
       abilities.forEach(ability => {
         const mod = getAbilityMod(ability);
@@ -944,7 +1080,7 @@
       updateInitiative();
       updateCalculatedLists();
       updatePassives();
-      updateAttacks();
+      renderAttacks();
       updateSpellSlots();
       updateStickyBar();
     }
@@ -995,28 +1131,6 @@
       document.getElementById("passivePerception").textContent = 10 + getSkillTotal("skill_perception");
       document.getElementById("passiveInsight").textContent = 10 + getSkillTotal("skill_insight");
       document.getElementById("passiveInvestigation").textContent = 10 + getSkillTotal("skill_investigation");
-    }
-
-    function updateAttacks() {
-      for (let i = 1; i <= attackCount; i++) {
-        const name = document.getElementById(`attack${i}_name`)?.value || `Attack ${i}`;
-        const ability = document.getElementById(`attack${i}_ability`)?.value || "str";
-        const isProf = document.getElementById(`attack${i}_prof`)?.value === "yes";
-        const hitMisc = Number(document.getElementById(`attack${i}_hitMisc`)?.value) || 0;
-        const dice = document.getElementById(`attack${i}_dice`)?.value || "damage dice";
-        const type = document.getElementById(`attack${i}_type`)?.value || "damage";
-        const dmgMisc = Number(document.getElementById(`attack${i}_dmgMisc`)?.value) || 0;
-
-        const abilityMod = getAbilityMod(ability);
-        const hitBonus = abilityMod + (isProf ? getProfBonus() : 0) + hitMisc;
-        const dmgBonus = abilityMod + dmgMisc;
-        const dmgText = `${dice}${dmgBonus === 0 ? "" : formatBonus(dmgBonus)} ${type}`;
-
-        const output = document.getElementById(`attack${i}_output`);
-        if (output) {
-          output.textContent = `${name}: ${formatBonus(hitBonus)} to hit | ${dmgText}`;
-        }
-      }
     }
 
     function updateSpellSlots() {
@@ -1097,15 +1211,41 @@
       });
     }
 
+    function rollDie(sides) {
+      return Math.floor(Math.random() * sides) + 1;
+    }
+
     function shortRest() {
+      const availableInput = document.getElementById("hitDiceAvailable");
+      let available = Number(availableInput.value) || 0;
+
+      if (available <= 0) {
+        document.getElementById("restResult").textContent = "No hit dice available.";
+        return;
+      }
+
+      const hitDie = Number(document.getElementById("hitDie").value) || 8;
+      const conMod = getAbilityMod("con");
+      const roll = rollDie(hitDie);
+      const healing = Math.max(1, roll + conMod);
+
+      const currentHp = document.getElementById("currentHp");
+      const maxHp = Number(document.getElementById("maxHp").value) || 0;
+      const newHp = Math.min(maxHp, (Number(currentHp.value) || 0) + healing);
+
+      currentHp.value = newHp;
+      availableInput.value = available - 1;
       clearDeathSaves();
-      alert("Short rest applied: death saves cleared. HP and spell slots were not changed.");
+
+      document.getElementById("restResult").textContent = `Short rest: rolled d${hitDie} (${roll}) + CON ${formatBonus(conMod)} = ${healing} HP healed.`;
+      updateModifiers();
       saveData();
     }
 
     function longRest() {
       document.getElementById("currentHp").value = document.getElementById("maxHp").value;
       document.getElementById("tempHp").value = 0;
+      document.getElementById("hitDiceAvailable").value = Math.max(1, Math.ceil((Number(document.getElementById("level").value) || 1) / 2));
       clearDeathSaves();
 
       spellLevels.forEach(level => {
@@ -1120,20 +1260,21 @@
         document.getElementById(id)?.classList.remove("active");
       });
 
+      document.getElementById("restResult").textContent = "Long rest applied: HP restored, death saves cleared, spell slots reset, and conditions cleared.";
       updateModifiers();
       saveData();
     }
 
     function rollDice(sides) {
-      const result = Math.floor(Math.random() * sides) + 1;
+      const result = rollDie(sides);
       document.getElementById("diceResult").textContent = "Result: " + result + " on a d" + sides;
     }
 
     function toggleSection(header) {
       const card = header.closest(".card");
       card.classList.toggle("collapsed");
-      const btn = card.querySelector(".collapse-btn");
-      btn.textContent = card.classList.contains("collapsed") ? "Expand" : "Collapse";
+      const arrow = card.querySelector(".collapse-arrow");
+      arrow.textContent = card.classList.contains("collapsed") ? "⌄" : "⌃";
       saveCollapsedSections();
     }
 
@@ -1144,11 +1285,11 @@
           collapsed.push(card.dataset.section);
         }
       });
-      localStorage.setItem("dndSheetV3Collapsed", JSON.stringify(collapsed));
+      localStorage.setItem("dndSheetV4Collapsed", JSON.stringify(collapsed));
     }
 
     function loadCollapsedSections() {
-      const saved = localStorage.getItem("dndSheetV3Collapsed");
+      const saved = localStorage.getItem("dndSheetV4Collapsed");
       if (!saved) return;
 
       const collapsed = JSON.parse(saved);
@@ -1156,8 +1297,8 @@
       document.querySelectorAll(".card[data-section]").forEach(card => {
         if (collapsed.includes(card.dataset.section)) {
           card.classList.add("collapsed");
-          const btn = card.querySelector(".collapse-btn");
-          if (btn) btn.textContent = "Expand";
+          const arrow = card.querySelector(".collapse-arrow");
+          if (arrow) arrow.textContent = "⌄";
         }
       });
     }
@@ -1166,8 +1307,8 @@
       const confirmReset = confirm("Are you sure you want to reset this character sheet?");
       if (!confirmReset) return;
 
-      localStorage.removeItem("dndCharacterSheetV3");
-      localStorage.removeItem("dndSheetV3Collapsed");
+      localStorage.removeItem("dndCharacterSheetV4");
+      localStorage.removeItem("dndSheetV4Collapsed");
       location.reload();
     }
 
@@ -1175,26 +1316,8 @@
       const saveIds = savingThrows.map(item => item.id);
       const skillIds = skills.flatMap(item => [item.id + "_prof", item.id + "_expertise"]);
       const conditionIds = conditions.map(condition => "condition_" + condition.replace(/\s+/g, "_").toLowerCase());
-      const attackIds = [];
-
-      for (let i = 1; i <= attackCount; i++) {
-        attackIds.push(
-          `attack${i}_name`,
-          `attack${i}_ability`,
-          `attack${i}_prof`,
-          `attack${i}_hitMisc`,
-          `attack${i}_dice`,
-          `attack${i}_type`,
-          `attack${i}_dmgMisc`
-        );
-      }
-
-      const spellIds = [];
-      spellLevels.forEach(level => {
-        spellIds.push(`spell${level}_max`);
-      });
-
-      return [...basicFields, ...saveIds, ...skillIds, ...conditionIds, ...attackIds, ...spellIds];
+      const spellIds = spellLevels.map(level => `spell${level}_max`);
+      return [...basicFields, ...saveIds, ...skillIds, ...conditionIds, ...spellIds];
     }
 
     function saveData() {
@@ -1214,16 +1337,18 @@
         }
       });
 
+      data.attacks = attacks;
+
       spellLevels.forEach(level => {
         data[`spell${level}_used`] = getUsedSpellSlots(level);
       });
 
-      localStorage.setItem("dndCharacterSheetV3", JSON.stringify(data));
+      localStorage.setItem("dndCharacterSheetV4", JSON.stringify(data));
       updateStickyBar();
     }
 
     function loadData() {
-      const saved = localStorage.getItem("dndCharacterSheetV3");
+      const saved = localStorage.getItem("dndCharacterSheetV4");
       if (!saved) return;
 
       const data = JSON.parse(saved);
@@ -1241,6 +1366,9 @@
           element.value = data[id];
         }
       });
+
+      attacks = Array.isArray(data.attacks) ? data.attacks : [];
+      renderAttacks();
 
       updateSpellSlots();
 
@@ -1269,11 +1397,15 @@
         document.getElementById("app").classList.toggle("combat-mode", document.getElementById("combatMode").checked);
         saveData();
       });
+
+      document.getElementById("newAttackDice").addEventListener("change", () => {
+        document.getElementById("customDiceWrap").style.display =
+          document.getElementById("newAttackDice").value === "custom" ? "block" : "none";
+      });
     }
 
     createCalculatedRows();
     createConditionButtons();
-    createAttackBuilder();
     createSpellSlots();
     loadData();
     loadCollapsedSections();
