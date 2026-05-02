@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>D&D Character Sheet v16</title>
+  <title>D&D Character Sheet v17</title>
   <style>
     :root {
       --bg: #111827;
@@ -712,6 +712,50 @@
       transform: scale(0.97);
     }
 
+
+    .quick-add-btn {
+      width: 100%;
+      background: #374151;
+      border: 1px solid #4b5563;
+      color: #dbeafe;
+      margin-bottom: 12px;
+    }
+
+    .builder-hidden {
+      display: none;
+    }
+
+    .compact-card {
+      padding: 10px;
+    }
+
+    .compact-card .spell-sub,
+    .compact-card .inventory-sub,
+    .compact-card .saved-attack-sub {
+      font-size: 13px;
+    }
+
+    .edit-panel {
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 10px;
+      padding: 10px;
+      margin-top: 10px;
+      display: none;
+    }
+
+    .edit-panel.active {
+      display: block;
+    }
+
+    .slot-hidden {
+      display: none !important;
+    }
+
+    .passive-sticky {
+      display: inline-block;
+    }
+
     .footer {
       text-align: center;
       color: var(--hint);
@@ -781,13 +825,13 @@
       <div class="sticky-pill" id="stickyHp">HP 10/10</div>
       <div class="sticky-pill" id="stickyAc">AC 10</div>
       <div class="sticky-pill" id="stickyInit">Init +0</div>
-      <div class="sticky-pill" id="stickyPassive">PP 10</div>
+      <div class="sticky-pill passive-sticky" id="stickyPassive">PP 10 | PI 10 | PINV 10</div>
       <div class="sticky-pill sticky-spell" id="stickySpellStats">Spell +0 / DC 10</div>
     </div>
   </div>
 
   <div class="container" id="app">
-    <h1>D&D Character Sheet v16</h1>
+    <h1>D&D Character Sheet v17</h1>
 
     <div class="combat-toggle">
       <input type="checkbox" id="combatMode">
@@ -1041,36 +1085,14 @@
       </div>
     </div>
 
-    <div class="card non-combat" data-section="passives">
-      <div class="section-header" onclick="toggleSection(this)">
-        <h2>Passive Scores</h2>
-        <span class="collapse-arrow">⌃</span>
-      </div>
-      <div class="section-content">
-        <div class="passive-grid">
-          <div class="passive-box">
-            <div>Passive Perception</div>
-            <div class="passive-value" id="passivePerception">10</div>
-          </div>
-          <div class="passive-box">
-            <div>Passive Insight</div>
-            <div class="passive-value" id="passiveInsight">10</div>
-          </div>
-          <div class="passive-box">
-            <div>Passive Investigation</div>
-            <div class="passive-value" id="passiveInvestigation">10</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div class="card" data-section="attackBuilder">
       <div class="section-header" onclick="toggleSection(this)">
         <h2>Attack Builder</h2>
         <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
-        <div class="attack-builder-panel">
+        <button class="quick-add-btn" onclick="toggleBuilder('attackBuilder')">➕ Add Attack</button>
+        <div class="attack-builder-panel builder-hidden" id="attackBuilder_builder">
           <h3>Add Attack</h3>
           <div class="grid-wide">
             <div>
@@ -1174,7 +1196,8 @@
         <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
-        <div class="attack-builder-panel">
+        <button class="quick-add-btn" onclick="toggleBuilder('featureBuilder')">➕ Add Feature</button>
+        <div class="attack-builder-panel builder-hidden" id="featureBuilder_builder">
           <h3>Add Feature</h3>
           <div class="grid-wide">
             <div>
@@ -1238,7 +1261,8 @@
         <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
-        <div class="attack-builder-panel">
+        <button class="quick-add-btn" onclick="toggleBuilder('spellBuilder')">➕ Add Spell / Cantrip</button>
+        <div class="attack-builder-panel builder-hidden" id="spellBuilder_builder">
           <h3>Add Spell / Cantrip</h3>
           <div class="grid-wide">
             <div>
@@ -1353,6 +1377,8 @@
         <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
+        <button class="quick-add-btn" onclick="toggleBuilder('inventoryBuilder')">➕ Add Item</button>
+        <div id="inventoryBuilder_builder" class="builder-hidden">
         <div class="grid-wide">
           <div>
             <label>Category</label>
@@ -1380,6 +1406,8 @@
         <button onclick="addInventoryItem()" class="success">Add Item</button>
       </div>
     </div>
+
+        </div>
 
     <div class="card non-combat" data-section="inventory">
       <div class="section-header" onclick="toggleSection(this)">
@@ -1896,6 +1924,30 @@
       saveData();
     }
 
+    function editAttack(id) {
+      const attack = attacks.find(a => a.id === id);
+      if (!attack) return;
+
+      jumpToSection("attackBuilder");
+      const builder = document.getElementById("attackBuilder_builder");
+      if (builder) builder.classList.remove("builder-hidden");
+
+      document.getElementById("newAttackWeapon").value = attack.weapon || "Custom";
+      document.getElementById("newAttackName").value = attack.name || "";
+      document.getElementById("newAttackName").dataset.auto = "false";
+      document.getElementById("newAttackAbility").value = attack.smartAbility ? "auto" : (attack.ability || "str");
+      document.getElementById("newAttackProf").value = attack.proficient ? "yes" : "no";
+      document.getElementById("newAttackHitMisc").value = attack.hitMisc || 0;
+      document.getElementById("newAttackDice").value = damageDiceOptions.includes(attack.dice) ? attack.dice : "custom";
+      document.getElementById("newAttackCustomDice").value = damageDiceOptions.includes(attack.dice) ? "" : attack.dice;
+      document.getElementById("customDiceWrap").style.display = document.getElementById("newAttackDice").value === "custom" ? "block" : "none";
+      document.getElementById("newAttackType").value = attack.type || "slashing";
+      document.getElementById("newAttackDmgMisc").value = attack.dmgMisc || 0;
+      document.getElementById("newAttackUseMastery").value = attack.mastery && attack.mastery !== "None" ? "yes" : "no";
+
+      deleteAttack(id);
+    }
+
     function addSpell() {
       const diceValue = document.getElementById("newSpellDice").value;
       const customDice = document.getElementById("newSpellCustomDice").value.trim();
@@ -1935,6 +1987,30 @@
       saveData();
     }
 
+    function editSpell(id) {
+      const spell = spells.find(s => s.id === id);
+      if (!spell) return;
+
+      jumpToSection("spellBuilder");
+      const builder = document.getElementById("spellBuilder_builder");
+      if (builder) builder.classList.remove("builder-hidden");
+
+      document.getElementById("newSpellName").value = spell.name || "";
+      document.getElementById("newSpellLevel").value = spell.level || "Cantrip";
+      document.getElementById("newSpellKind").value = spell.kind || "Utility";
+      document.getElementById("newSpellAbility").value = spell.ability || "cha";
+      document.getElementById("newSpellPrepared").value = spell.prepared === false ? "no" : "yes";
+      document.getElementById("newSpellConcentration").value = spell.concentration ? "yes" : "no";
+      document.getElementById("newSpellDuration").value = spell.duration || "";
+      document.getElementById("newSpellDice").value = ["", "1d4", "1d6", "1d8", "1d10", "1d12", "2d6", "3d6", "4d6"].includes(spell.dice) ? spell.dice : "custom";
+      document.getElementById("newSpellCustomDice").value = ["", "1d4", "1d6", "1d8", "1d10", "1d12", "2d6", "3d6", "4d6"].includes(spell.dice) ? "" : spell.dice;
+      document.getElementById("customSpellDiceWrap").style.display = document.getElementById("newSpellDice").value === "custom" ? "block" : "none";
+      document.getElementById("newSpellType").value = spell.type || "";
+      document.getElementById("newSpellNotes").value = spell.notes || "";
+
+      deleteSpell(id);
+    }
+
     function renderSpells() {
       const container = document.getElementById("spellCardList");
       if (!container) return;
@@ -1962,7 +2038,7 @@
         if (spell.duration) subParts.push(`Duration: ${spell.duration}`);
 
         const div = document.createElement("div");
-        div.className = "spell-card";
+        div.className = "spell-card compact-card";
         div.innerHTML = `
           <div class="spell-main">
             <div>
@@ -1975,6 +2051,7 @@
               ${spell.kind === "Spell Attack" ? `<button class="mini-button purple" onclick="rollSpellAttack(${spell.id})">Roll Hit</button>` : ""}
               ${spell.dice ? `<button class="mini-button purple" onclick="rollSpellDamage(${spell.id})">Roll Dmg</button>` : ""}
               ${spell.concentration ? `<button class="mini-button warning" onclick="toggleConcentration(${spell.id})">Concentration</button>` : ""}
+              <button class="mini-button ghost" onclick="editSpell(${spell.id})">Edit</button>
               <button class="mini-button danger" onclick="deleteSpell(${spell.id})">Delete</button>
             </div>
           </div>
@@ -2170,6 +2247,23 @@
       saveData();
     }
 
+    function editFeature(id) {
+      const feature = classFeatures.find(f => f.id === id);
+      if (!feature) return;
+
+      jumpToSection("featureBuilder");
+      const builder = document.getElementById("featureBuilder_builder");
+      if (builder) builder.classList.remove("builder-hidden");
+
+      document.getElementById("newFeatureName").value = feature.name || "";
+      document.getElementById("newFeatureAction").value = feature.action || "Action";
+      document.getElementById("newFeatureMaxUses").value = feature.maxUses || 0;
+      document.getElementById("newFeatureReset").value = feature.reset || "Long Rest";
+      document.getElementById("newFeatureDescription").value = feature.description || "";
+
+      deleteFeature(id);
+    }
+
     function useFeature(id) {
       const feature = classFeatures.find(f => f.id === id);
       if (!feature || feature.maxUses <= 0) return;
@@ -2210,7 +2304,7 @@
 
       classFeatures.forEach(feature => {
         const div = document.createElement("div");
-        div.className = "feature-card";
+        div.className = "feature-card compact-card";
 
         let usesHtml = "";
         if (feature.maxUses > 0) {
@@ -2234,6 +2328,7 @@
             <div>
               ${feature.maxUses > 0 ? `<button class="mini-button purple" onclick="useFeature(${feature.id})">Use</button>` : ""}
               ${feature.maxUses > 0 ? `<button class="mini-button ghost" onclick="resetFeature(${feature.id})">Reset</button>` : ""}
+              <button class="mini-button ghost" onclick="editFeature(${feature.id})">Edit</button>
               <button class="mini-button danger" onclick="deleteFeature(${feature.id})">Delete</button>
             </div>
           </div>
@@ -2286,6 +2381,22 @@
       saveData();
     }
 
+    function editInventoryItem(id) {
+      const item = inventoryItems.find(i => i.id === id);
+      if (!item) return;
+
+      jumpToSection("inventoryBuilder");
+      const builder = document.getElementById("inventoryBuilder_builder");
+      if (builder) builder.classList.remove("builder-hidden");
+
+      document.getElementById("newInventoryCategory").value = item.category || "Misc";
+      document.getElementById("newInventoryName").value = item.name || "";
+      document.getElementById("newInventoryQty").value = item.qty || 1;
+      document.getElementById("newInventoryNotes").value = item.notes || "";
+
+      deleteInventoryItem(id);
+    }
+
     function renderInventory() {
       const container = document.getElementById("inventoryList");
       if (!container) return;
@@ -2300,7 +2411,7 @@
 
       categories.forEach(category => {
         const group = document.createElement("div");
-        group.className = "inventory-category";
+        group.className = "inventory-category compact-card";
         group.innerHTML = `<div class="inventory-title">${category}</div>`;
 
         inventoryItems.filter(item => item.category === category).forEach(item => {
@@ -2313,6 +2424,7 @@
               <div class="inventory-sub">${item.notes || ""}</div>
             </div>
             <div>
+              <button class="mini-button ghost" onclick="editInventoryItem(${item.id})">Edit</button>
               <button class="mini-button danger" onclick="deleteInventoryItem(${item.id})">Delete</button>
             </div>
           `;
@@ -2342,7 +2454,7 @@
         const propText = attack.properties?.length ? ` • ${attack.properties.join(", ")}` : "";
 
         const div = document.createElement("div");
-        div.className = "saved-attack";
+        div.className = "saved-attack compact-card";
         div.innerHTML = `
           <div>
             <div class="saved-attack-main rollable" onclick="rollAttack(${attack.id})">${attack.name}: ${formatBonus(hitBonus)} to hit</div>
@@ -2351,6 +2463,7 @@
           <div>
             <button class="mini-button purple" onclick="rollAttack(${attack.id})">Roll Hit</button>
             <button class="mini-button purple" onclick="rollAttackDamage(${attack.id})">Roll Dmg</button>
+            <button class="mini-button ghost" onclick="editAttack(${attack.id})">Edit</button>
             <button class="mini-button danger" onclick="deleteAttack(${attack.id})">Delete</button>
           </div>
         `;
@@ -2512,9 +2625,13 @@
     }
 
     function updatePassives() {
-      document.getElementById("passivePerception").textContent = 10 + getSkillTotal("skill_perception");
-      document.getElementById("passiveInsight").textContent = 10 + getSkillTotal("skill_insight");
-      document.getElementById("passiveInvestigation").textContent = 10 + getSkillTotal("skill_investigation");
+      const perception = document.getElementById("passivePerception");
+      const insight = document.getElementById("passiveInsight");
+      const investigation = document.getElementById("passiveInvestigation");
+
+      if (perception) perception.textContent = 10 + getSkillTotal("skill_perception");
+      if (insight) insight.textContent = 10 + getSkillTotal("skill_insight");
+      if (investigation) investigation.textContent = 10 + getSkillTotal("skill_investigation");
     }
 
     function updateSpellSlots() {
@@ -2524,6 +2641,10 @@
         if (maxInput && Number(maxInput.value) !== max) maxInput.value = max;
 
         const bubbleContainer = document.getElementById(`spell${level}_bubbles`);
+        const slotRow = bubbleContainer?.closest(".spell-slot-row");
+        if (slotRow) {
+          slotRow.classList.toggle("slot-hidden", max === 0);
+        }
         const currentUsed = getUsedSpellSlots(level);
         bubbleContainer.innerHTML = "";
 
@@ -2565,13 +2686,15 @@
       const maxHp = Number(document.getElementById("maxHp").value) || 0;
       const ac = document.getElementById("ac").value || "10";
       const init = document.getElementById("initiative").value || "+0";
-      const pp = document.getElementById("passivePerception").textContent || "10";
+      const pp = document.getElementById("passivePerception")?.textContent || String(10 + getSkillTotal("skill_perception"));
+      const pi = document.getElementById("passiveInsight")?.textContent || String(10 + getSkillTotal("skill_insight"));
+      const pinv = document.getElementById("passiveInvestigation")?.textContent || String(10 + getSkillTotal("skill_investigation"));
 
       document.getElementById("stickyName").textContent = name;
       document.getElementById("stickyHp").textContent = `HP ${hp}/${maxHp}`;
       document.getElementById("stickyAc").textContent = `AC ${ac}`;
       document.getElementById("stickyInit").textContent = `Init ${init}`;
-      document.getElementById("stickyPassive").textContent = `PP ${pp}`;
+      document.getElementById("stickyPassive").textContent = `PP ${pp} | PI ${pi} | PINV ${pinv}`;
       document.getElementById("stickySpellStats").textContent = `Spell ${formatBonus(getSpellAttackBonus())} / DC ${getSpellSaveDc()}`;
       document.getElementById("app").classList.toggle("spellcaster", hasSpellcastingClass());
 
@@ -2808,7 +2931,7 @@
       }
 
       document.getElementById("restResult").textContent = log[0];
-      document.getElementById("restLog").textContent = "Short Rest Applied:\\n" + log.join("\\n");
+      const restLog = document.getElementById("restLog"); if (restLog) restLog.textContent = "Short Rest Applied:\\n" + log.join("\\n");
       showDicePop("Short rest applied.");
       updateModifiers();
       saveData();
@@ -2845,7 +2968,7 @@
       log.push(`Long-rest and short-rest features reset: ${resetCount}.`);
 
       document.getElementById("restResult").textContent = "Long rest applied.";
-      document.getElementById("restLog").textContent = "Long Rest Applied:\\n" + log.join("\\n");
+      const restLog = document.getElementById("restLog"); if (restLog) restLog.textContent = "Long Rest Applied:\\n" + log.join("\\n");
       showDicePop("Long rest applied.");
       updateModifiers();
       saveData();
@@ -2871,14 +2994,18 @@
           collapsed.push(card.dataset.section);
         }
       });
-      localStorage.setItem("dndSheetV16Collapsed", JSON.stringify(collapsed));
+      localStorage.setItem("dndSheetV17Collapsed", JSON.stringify(collapsed));
     }
 
     function loadCollapsedSections() {
-      const saved = localStorage.getItem("dndSheetV16Collapsed");
-      if (!saved) return;
+      const saved = localStorage.getItem("dndSheetV17Collapsed");
+      let collapsed;
 
-      const collapsed = JSON.parse(saved);
+      if (!saved) {
+        collapsed = ["character", "abilities", "saves", "skills", "attackBuilder", "featureBuilder", "spellBuilder", "inventoryBuilder", "inventory", "notes", "dice"];
+      } else {
+        collapsed = JSON.parse(saved);
+      }
 
       document.querySelectorAll(".card[data-section]").forEach(card => {
         if (collapsed.includes(card.dataset.section)) {
@@ -2893,8 +3020,8 @@
       const confirmReset = confirm("Are you sure you want to reset this character sheet?");
       if (!confirmReset) return;
 
-      localStorage.removeItem("dndCharacterSheetV16");
-      localStorage.removeItem("dndSheetV16Collapsed");
+      localStorage.removeItem("dndCharacterSheetV17");
+      localStorage.removeItem("dndSheetV17Collapsed");
       location.reload();
     }
 
@@ -2935,12 +3062,12 @@
         data[`spell${level}_used`] = getUsedSpellSlots(level);
       });
 
-      localStorage.setItem("dndCharacterSheetV16", JSON.stringify(data));
+      localStorage.setItem("dndCharacterSheetV17", JSON.stringify(data));
       updateStickyBar();
     }
 
     function loadData() {
-      const saved = localStorage.getItem("dndCharacterSheetV16");
+      const saved = localStorage.getItem("dndCharacterSheetV17");
       if (!saved) return;
 
       const data = JSON.parse(saved);
@@ -2981,6 +3108,12 @@
         }
         updateSpellSummary(level);
       });
+    }
+
+    function toggleBuilder(sectionName) {
+      const builder = document.getElementById(sectionName + "_builder");
+      if (!builder) return;
+      builder.classList.toggle("builder-hidden");
     }
 
     function jumpToSection(sectionName) {
