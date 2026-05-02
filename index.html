@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>D&D Character Sheet v5</title>
+  <title>D&D Character Sheet v6</title>
   <style>
     :root {
       --bg: #111827;
@@ -283,8 +283,9 @@
       font-weight: bold;
     }
 
-    .combat-mode .non-combat {
-      display: none;
+    .combat-mode .non-combat,
+    .combat-mode .combat-hide {
+      display: none !important;
     }
 
     .combat-toggle {
@@ -511,7 +512,7 @@
   </div>
 
   <div class="container" id="app">
-    <h1>D&D Character Sheet v5</h1>
+    <h1>D&D Character Sheet v6</h1>
 
     <div class="combat-toggle">
       <input type="checkbox" id="combatMode">
@@ -519,7 +520,7 @@
       <span class="hint">Shows only the most useful combat sections.</span>
     </div>
 
-    <div class="search-box">
+    <div class="search-box combat-hide">
       <input id="sheetSearch" placeholder="Search sheet... ex: spell, potion, perception, longsword">
     </div>
 
@@ -588,7 +589,7 @@
             <label>Initiative</label>
             <input id="initiative" readonly>
           </div>
-          <div>
+          <div class="combat-hide">
             <label>Initiative Misc Bonus</label>
             <input id="initiativeMisc" type="number" value="0">
           </div>
@@ -596,7 +597,7 @@
             <label>Speed</label>
             <input id="speed" placeholder="30 ft">
           </div>
-          <div>
+          <div class="combat-hide">
             <label>Proficiency Bonus</label>
             <input id="prof" type="number" value="2" readonly>
           </div>
@@ -868,16 +869,16 @@
       </div>
     </div>
 
-    <div class="card non-combat" data-section="spells">
+    <div class="card" data-section="spells">
       <div class="section-header" onclick="toggleSection(this)">
         <h2>Spell Slots</h2>
         <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
-        <p class="hint">Set the max slots, then tap bubbles to mark used slots.</p>
+        <p class="hint">Spell slot maxes auto-update from your class and level. Tap bubbles to mark used slots.</p>
         <div id="spellSlotSection"></div>
 
-        <div class="attack-builder-panel">
+        <div class="attack-builder-panel combat-hide">
           <h3>Add Spell / Cantrip</h3>
           <div class="grid-wide">
             <div>
@@ -956,7 +957,7 @@
           <button onclick="addSpell()" class="success">Add Spell</button>
         </div>
 
-        <div id="spellCardList"></div>
+        <div id="spellCardList" class="combat-hide"></div>
       </div>
     </div>
 
@@ -999,7 +1000,7 @@
       </div>
     </div>
 
-    <div class="card" data-section="dice">
+    <div class="card non-combat" data-section="dice">
       <div class="section-header" onclick="toggleSection(this)">
         <h2>Dice Roller</h2>
         <span class="collapse-arrow">⌃</span>
@@ -1084,19 +1085,50 @@
     const spellLevels = [1,2,3,4,5,6,7,8,9];
 
     const classPresets = {
-      "Artificer": { hitDie: 8, saves: ["save_con", "save_int"], spellAbility: "int" },
-      "Barbarian": { hitDie: 12, saves: ["save_str", "save_con"], spellAbility: "cha" },
-      "Bard": { hitDie: 8, saves: ["save_dex", "save_cha"], spellAbility: "cha" },
-      "Cleric": { hitDie: 8, saves: ["save_wis", "save_cha"], spellAbility: "wis" },
-      "Druid": { hitDie: 8, saves: ["save_int", "save_wis"], spellAbility: "wis" },
-      "Fighter": { hitDie: 10, saves: ["save_str", "save_con"], spellAbility: "int" },
-      "Monk": { hitDie: 8, saves: ["save_str", "save_dex"], spellAbility: "wis" },
-      "Paladin": { hitDie: 10, saves: ["save_wis", "save_cha"], spellAbility: "cha" },
-      "Ranger": { hitDie: 10, saves: ["save_str", "save_dex"], spellAbility: "wis" },
-      "Rogue": { hitDie: 8, saves: ["save_dex", "save_int"], spellAbility: "int" },
-      "Sorcerer": { hitDie: 6, saves: ["save_con", "save_cha"], spellAbility: "cha" },
-      "Warlock": { hitDie: 8, saves: ["save_wis", "save_cha"], spellAbility: "cha" },
-      "Wizard": { hitDie: 6, saves: ["save_int", "save_wis"], spellAbility: "int" }
+      "Artificer": { hitDie: 8, saves: ["save_con", "save_int"], spellAbility: "int", casterType: "artificer" },
+      "Barbarian": { hitDie: 12, saves: ["save_str", "save_con"], spellAbility: "cha", casterType: "none" },
+      "Bard": { hitDie: 8, saves: ["save_dex", "save_cha"], spellAbility: "cha", casterType: "full" },
+      "Cleric": { hitDie: 8, saves: ["save_wis", "save_cha"], spellAbility: "wis", casterType: "full" },
+      "Druid": { hitDie: 8, saves: ["save_int", "save_wis"], spellAbility: "wis", casterType: "full" },
+      "Fighter": { hitDie: 10, saves: ["save_str", "save_con"], spellAbility: "int", casterType: "none" },
+      "Monk": { hitDie: 8, saves: ["save_str", "save_dex"], spellAbility: "wis", casterType: "none" },
+      "Paladin": { hitDie: 10, saves: ["save_wis", "save_cha"], spellAbility: "cha", casterType: "half" },
+      "Ranger": { hitDie: 10, saves: ["save_str", "save_dex"], spellAbility: "wis", casterType: "half" },
+      "Rogue": { hitDie: 8, saves: ["save_dex", "save_int"], spellAbility: "int", casterType: "none" },
+      "Sorcerer": { hitDie: 6, saves: ["save_con", "save_cha"], spellAbility: "cha", casterType: "full" },
+      "Warlock": { hitDie: 8, saves: ["save_wis", "save_cha"], spellAbility: "cha", casterType: "warlock" },
+      "Wizard": { hitDie: 6, saves: ["save_int", "save_wis"], spellAbility: "int", casterType: "full" }
+    };
+
+    const fullCasterSlots = {
+      1:[2,0,0,0,0,0,0,0,0], 2:[3,0,0,0,0,0,0,0,0], 3:[4,2,0,0,0,0,0,0,0], 4:[4,3,0,0,0,0,0,0,0],
+      5:[4,3,2,0,0,0,0,0,0], 6:[4,3,3,0,0,0,0,0,0], 7:[4,3,3,1,0,0,0,0,0], 8:[4,3,3,2,0,0,0,0,0],
+      9:[4,3,3,3,1,0,0,0,0], 10:[4,3,3,3,2,0,0,0,0], 11:[4,3,3,3,2,1,0,0,0], 12:[4,3,3,3,2,1,0,0,0],
+      13:[4,3,3,3,2,1,1,0,0], 14:[4,3,3,3,2,1,1,0,0], 15:[4,3,3,3,2,1,1,1,0], 16:[4,3,3,3,2,1,1,1,0],
+      17:[4,3,3,3,2,1,1,1,1], 18:[4,3,3,3,3,1,1,1,1], 19:[4,3,3,3,3,2,1,1,1], 20:[4,3,3,3,3,2,2,1,1]
+    };
+
+    const halfCasterSlots = {
+      1:[0,0,0,0,0,0,0,0,0], 2:[2,0,0,0,0,0,0,0,0], 3:[3,0,0,0,0,0,0,0,0], 4:[3,0,0,0,0,0,0,0,0],
+      5:[4,2,0,0,0,0,0,0,0], 6:[4,2,0,0,0,0,0,0,0], 7:[4,3,0,0,0,0,0,0,0], 8:[4,3,0,0,0,0,0,0,0],
+      9:[4,3,2,0,0,0,0,0,0], 10:[4,3,2,0,0,0,0,0,0], 11:[4,3,3,0,0,0,0,0,0], 12:[4,3,3,0,0,0,0,0,0],
+      13:[4,3,3,1,0,0,0,0,0], 14:[4,3,3,1,0,0,0,0,0], 15:[4,3,3,2,0,0,0,0,0], 16:[4,3,3,2,0,0,0,0,0],
+      17:[4,3,3,3,1,0,0,0,0], 18:[4,3,3,3,1,0,0,0,0], 19:[4,3,3,3,2,0,0,0,0], 20:[4,3,3,3,2,0,0,0,0]
+    };
+
+    const artificerSlots = {
+      1:[2,0,0,0,0,0,0,0,0], 2:[2,0,0,0,0,0,0,0,0], 3:[3,0,0,0,0,0,0,0,0], 4:[3,0,0,0,0,0,0,0,0],
+      5:[4,2,0,0,0,0,0,0,0], 6:[4,2,0,0,0,0,0,0,0], 7:[4,3,0,0,0,0,0,0,0], 8:[4,3,0,0,0,0,0,0,0],
+      9:[4,3,2,0,0,0,0,0,0], 10:[4,3,2,0,0,0,0,0,0], 11:[4,3,3,0,0,0,0,0,0], 12:[4,3,3,0,0,0,0,0,0],
+      13:[4,3,3,1,0,0,0,0,0], 14:[4,3,3,1,0,0,0,0,0], 15:[4,3,3,2,0,0,0,0,0], 16:[4,3,3,2,0,0,0,0,0],
+      17:[4,3,3,3,1,0,0,0,0], 18:[4,3,3,3,1,0,0,0,0], 19:[4,3,3,3,2,0,0,0,0], 20:[4,3,3,3,2,0,0,0,0]
+    };
+
+    const warlockSlotsByLevel = {
+      1:{slots:1, level:1}, 2:{slots:2, level:1}, 3:{slots:2, level:2}, 4:{slots:2, level:2}, 5:{slots:2, level:3},
+      6:{slots:2, level:3}, 7:{slots:2, level:4}, 8:{slots:2, level:4}, 9:{slots:2, level:5}, 10:{slots:2, level:5},
+      11:{slots:3, level:5}, 12:{slots:3, level:5}, 13:{slots:3, level:5}, 14:{slots:3, level:5}, 15:{slots:3, level:5},
+      16:{slots:3, level:5}, 17:{slots:4, level:5}, 18:{slots:4, level:5}, 19:{slots:4, level:5}, 20:{slots:4, level:5}
     };
 
     function formatBonus(num) {
@@ -1462,6 +1494,54 @@
       document.getElementById("prof").value = bonus;
     }
 
+    function getCleanLevel() {
+      const raw = Number(document.getElementById("level").value) || 1;
+      return Math.max(1, Math.min(20, raw));
+    }
+
+    function syncHitDiceFromLevel() {
+      const level = getCleanLevel();
+      const availableInput = document.getElementById("hitDiceAvailable");
+      const current = Number(availableInput.value);
+      if (!current || current > level) {
+        availableInput.value = level;
+      }
+    }
+
+    function getSlotsForClassAndLevel() {
+      const className = document.getElementById("class").value;
+      const preset = classPresets[className];
+      const level = getCleanLevel();
+      const empty = [0,0,0,0,0,0,0,0,0];
+
+      if (!preset || preset.casterType === "none") return empty;
+      if (preset.casterType === "full") return fullCasterSlots[level] || empty;
+      if (preset.casterType === "half") return halfCasterSlots[level] || empty;
+      if (preset.casterType === "artificer") return artificerSlots[level] || empty;
+
+      if (preset.casterType === "warlock") {
+        const pact = warlockSlotsByLevel[level] || { slots: 0, level: 1 };
+        const slots = [0,0,0,0,0,0,0,0,0];
+        slots[pact.level - 1] = pact.slots;
+        return slots;
+      }
+
+      return empty;
+    }
+
+    function applySpellSlotsFromClassLevel() {
+      const slots = getSlotsForClassAndLevel();
+
+      spellLevels.forEach(level => {
+        const input = document.getElementById(`spell${level}_max`);
+        if (input) {
+          input.value = slots[level - 1] || 0;
+        }
+      });
+
+      updateSpellSlots();
+    }
+
     function applyClassPreset() {
       const className = document.getElementById("class").value;
       const preset = classPresets[className];
@@ -1477,8 +1557,8 @@
       const spellAbility = document.getElementById("newSpellAbility");
       if (spellAbility) spellAbility.value = preset.spellAbility;
 
-      const level = Number(document.getElementById("level").value) || 1;
-      document.getElementById("hitDiceAvailable").value = level;
+      document.getElementById("hitDiceAvailable").value = getCleanLevel();
+      applySpellSlotsFromClassLevel();
       updateModifiers();
       saveData();
     }
@@ -1499,6 +1579,7 @@
 
     function updateModifiers() {
       updateProficiencyFromLevel();
+      syncHitDiceFromLevel();
       abilities.forEach(ability => {
         const mod = getAbilityMod(ability);
         document.getElementById(ability + "Mod").textContent = formatBonus(mod);
@@ -1748,7 +1829,7 @@
     function longRest() {
       document.getElementById("currentHp").value = document.getElementById("maxHp").value;
       document.getElementById("tempHp").value = 0;
-      document.getElementById("hitDiceAvailable").value = Math.max(1, Math.ceil((Number(document.getElementById("level").value) || 1) / 2));
+      document.getElementById("hitDiceAvailable").value = getCleanLevel();
       clearDeathSaves();
 
       spellLevels.forEach(level => {
@@ -1788,11 +1869,11 @@
           collapsed.push(card.dataset.section);
         }
       });
-      localStorage.setItem("dndSheetV5Collapsed", JSON.stringify(collapsed));
+      localStorage.setItem("dndSheetV6Collapsed", JSON.stringify(collapsed));
     }
 
     function loadCollapsedSections() {
-      const saved = localStorage.getItem("dndSheetV5Collapsed");
+      const saved = localStorage.getItem("dndSheetV6Collapsed");
       if (!saved) return;
 
       const collapsed = JSON.parse(saved);
@@ -1810,8 +1891,8 @@
       const confirmReset = confirm("Are you sure you want to reset this character sheet?");
       if (!confirmReset) return;
 
-      localStorage.removeItem("dndCharacterSheetV5");
-      localStorage.removeItem("dndSheetV5Collapsed");
+      localStorage.removeItem("dndCharacterSheetV6");
+      localStorage.removeItem("dndSheetV6Collapsed");
       location.reload();
     }
 
@@ -1848,12 +1929,12 @@
         data[`spell${level}_used`] = getUsedSpellSlots(level);
       });
 
-      localStorage.setItem("dndCharacterSheetV5", JSON.stringify(data));
+      localStorage.setItem("dndCharacterSheetV6", JSON.stringify(data));
       updateStickyBar();
     }
 
     function loadData() {
-      const saved = localStorage.getItem("dndCharacterSheetV5");
+      const saved = localStorage.getItem("dndCharacterSheetV6");
       if (!saved) return;
 
       const data = JSON.parse(saved);
@@ -1932,6 +2013,12 @@
       });
 
       document.getElementById("class").addEventListener("change", applyClassPreset);
+      document.getElementById("level").addEventListener("change", () => {
+        document.getElementById("hitDiceAvailable").value = getCleanLevel();
+        applySpellSlotsFromClassLevel();
+        updateModifiers();
+        saveData();
+      });
 
       document.getElementById("sheetSearch").addEventListener("input", applySearchFilter);
     }
