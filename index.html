@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>D&D Character Sheet v4</title>
+  <title>D&D Character Sheet v5</title>
   <style>
     :root {
       --bg: #111827;
@@ -397,6 +397,73 @@
       font-weight: bold;
     }
 
+    .search-box {
+      position: sticky;
+      top: 74px;
+      z-index: 900;
+      background: #020617;
+      border: 1px solid #374151;
+      border-radius: 12px;
+      padding: 10px;
+      margin-bottom: 12px;
+    }
+
+    .rollable {
+      cursor: pointer;
+      transition: transform 0.08s ease, filter 0.08s ease;
+    }
+
+    .rollable:hover {
+      filter: brightness(1.12);
+    }
+
+    .rollable:active {
+      transform: scale(0.98);
+    }
+
+    .spell-card, .inventory-category {
+      background: var(--input);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+
+    .spell-main, .inventory-main {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .spell-title, .inventory-title {
+      color: #bfdbfe;
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    .spell-sub, .inventory-sub {
+      color: #d1d5db;
+      font-size: 14px;
+      margin-top: 4px;
+      white-space: pre-wrap;
+    }
+
+    .dice-pop {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%);
+      background: #020617;
+      border: 1px solid #60a5fa;
+      color: #bfdbfe;
+      padding: 12px 16px;
+      border-radius: 999px;
+      z-index: 2000;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+      display: none;
+      font-weight: bold;
+    }
+
     .footer {
       text-align: center;
       color: var(--hint);
@@ -444,12 +511,16 @@
   </div>
 
   <div class="container" id="app">
-    <h1>D&D Character Sheet v4</h1>
+    <h1>D&D Character Sheet v5</h1>
 
     <div class="combat-toggle">
       <input type="checkbox" id="combatMode">
       <strong>Quick Combat Mode</strong>
       <span class="hint">Shows only the most useful combat sections.</span>
+    </div>
+
+    <div class="search-box">
+      <input id="sheetSearch" placeholder="Search sheet... ex: spell, potion, perception, longsword">
     </div>
 
     <div class="card non-combat" data-section="character">
@@ -473,7 +544,22 @@
           </div>
           <div>
             <label>Class</label>
-            <input id="class" placeholder="Ex: Fighter">
+            <select id="class">
+              <option value="">Choose Class</option>
+              <option value="Artificer">Artificer</option>
+              <option value="Barbarian">Barbarian</option>
+              <option value="Bard">Bard</option>
+              <option value="Cleric">Cleric</option>
+              <option value="Druid">Druid</option>
+              <option value="Fighter">Fighter</option>
+              <option value="Monk">Monk</option>
+              <option value="Paladin">Paladin</option>
+              <option value="Ranger">Ranger</option>
+              <option value="Rogue">Rogue</option>
+              <option value="Sorcerer">Sorcerer</option>
+              <option value="Warlock">Warlock</option>
+              <option value="Wizard">Wizard</option>
+            </select>
           </div>
           <div>
             <label>Level</label>
@@ -512,7 +598,7 @@
           </div>
           <div>
             <label>Proficiency Bonus</label>
-            <input id="prof" type="number" value="2">
+            <input id="prof" type="number" value="2" readonly>
           </div>
         </div>
       </div>
@@ -552,11 +638,20 @@
           </div>
         </div>
 
+        <div class="grid">
+          <div>
+            <label>Damage Amount</label>
+            <input id="damageAmount" type="number" min="0" value="0">
+          </div>
+          <div>
+            <label>Heal Amount</label>
+            <input id="healAmount" type="number" min="0" value="0">
+          </div>
+        </div>
+
         <div class="small-buttons">
-          <button onclick="changeHp(1)">+1 HP</button>
-          <button onclick="changeHp(5)">+5 HP</button>
-          <button onclick="changeHp(-1)" class="danger">-1 HP</button>
-          <button onclick="changeHp(-5)" class="danger">-5 HP</button>
+          <button onclick="applyDamage()" class="danger">Apply Damage</button>
+          <button onclick="applyHeal()" class="success">Apply Heal</button>
           <button onclick="shortRest()" class="warning">Short Rest Roll</button>
           <button onclick="longRest()" class="success">Long Rest</button>
         </div>
@@ -782,8 +877,86 @@
         <p class="hint">Set the max slots, then tap bubbles to mark used slots.</p>
         <div id="spellSlotSection"></div>
 
-        <label>Spells</label>
-        <textarea id="spells" placeholder="Cantrips and prepared spells"></textarea>
+        <div class="attack-builder-panel">
+          <h3>Add Spell / Cantrip</h3>
+          <div class="grid-wide">
+            <div>
+              <label>Spell Name</label>
+              <input id="newSpellName" placeholder="Ex: Fire Bolt">
+            </div>
+            <div>
+              <label>Level</label>
+              <select id="newSpellLevel">
+                <option value="Cantrip">Cantrip</option>
+                <option value="1">Level 1</option>
+                <option value="2">Level 2</option>
+                <option value="3">Level 3</option>
+                <option value="4">Level 4</option>
+                <option value="5">Level 5</option>
+                <option value="6">Level 6</option>
+                <option value="7">Level 7</option>
+                <option value="8">Level 8</option>
+                <option value="9">Level 9</option>
+              </select>
+            </div>
+            <div>
+              <label>Attack / Save / Utility</label>
+              <select id="newSpellKind">
+                <option value="Spell Attack">Spell Attack</option>
+                <option value="Save Spell">Save Spell</option>
+                <option value="Utility">Utility</option>
+              </select>
+            </div>
+            <div>
+              <label>Ability</label>
+              <select id="newSpellAbility">
+                <option value="int">Intelligence</option>
+                <option value="wis">Wisdom</option>
+                <option value="cha">Charisma</option>
+              </select>
+            </div>
+            <div>
+              <label>Damage Dice</label>
+              <select id="newSpellDice">
+                <option value="">None</option>
+                <option value="1d4">1d4</option>
+                <option value="1d6">1d6</option>
+                <option value="1d8">1d8</option>
+                <option value="1d10">1d10</option>
+                <option value="1d12">1d12</option>
+                <option value="2d6">2d6</option>
+                <option value="3d6">3d6</option>
+                <option value="4d6">4d6</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div id="customSpellDiceWrap" style="display:none;">
+              <label>Custom Damage Dice</label>
+              <input id="newSpellCustomDice" placeholder="Ex: 8d6">
+            </div>
+            <div>
+              <label>Damage Type</label>
+              <select id="newSpellType">
+                <option value="">None</option>
+                <option value="acid">Acid</option>
+                <option value="cold">Cold</option>
+                <option value="fire">Fire</option>
+                <option value="force">Force</option>
+                <option value="lightning">Lightning</option>
+                <option value="necrotic">Necrotic</option>
+                <option value="poison">Poison</option>
+                <option value="psychic">Psychic</option>
+                <option value="radiant">Radiant</option>
+                <option value="thunder">Thunder</option>
+              </select>
+            </div>
+          </div>
+          <label>Notes</label>
+          <textarea id="newSpellNotes" placeholder="Range, casting time, effect, concentration, etc."></textarea>
+          <button onclick="addSpell()" class="success">Add Spell</button>
+        </div>
+
+        <div id="spellCardList"></div>
       </div>
     </div>
 
@@ -793,10 +966,35 @@
         <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
-        <label>Inventory</label>
-        <textarea id="inventory" placeholder="Gold, weapons, armor, items"></textarea>
+        <div class="grid-wide">
+          <div>
+            <label>Category</label>
+            <select id="newInventoryCategory">
+              <option value="Weapons">Weapons</option>
+              <option value="Armor">Armor</option>
+              <option value="Potions">Potions</option>
+              <option value="Magic Items">Magic Items</option>
+              <option value="Gold / Coins">Gold / Coins</option>
+              <option value="Quest Items">Quest Items</option>
+              <option value="Misc">Misc</option>
+            </select>
+          </div>
+          <div>
+            <label>Item Name</label>
+            <input id="newInventoryName" placeholder="Ex: Healing Potion">
+          </div>
+          <div>
+            <label>Quantity</label>
+            <input id="newInventoryQty" type="number" min="1" value="1">
+          </div>
+        </div>
+        <label>Item Notes</label>
+        <textarea id="newInventoryNotes" placeholder="Description, value, attunement, etc."></textarea>
+        <button onclick="addInventoryItem()" class="success">Add Item</button>
 
-        <label>Notes</label>
+        <div id="inventoryList"></div>
+
+        <label>Campaign Notes</label>
         <textarea id="notes" placeholder="Story notes, quests, NPCs, etc."></textarea>
       </div>
     </div>
@@ -822,6 +1020,8 @@
       <button onclick="resetSheet()" class="danger">Reset Sheet</button>
     </div>
 
+    <div class="dice-pop" id="dicePop"></div>
+
     <div class="footer">
       Character sheet saves automatically on this device.
     </div>
@@ -830,13 +1030,16 @@
   <script>
     const abilities = ["str", "dex", "con", "int", "wis", "cha"];
     let attacks = [];
+    let spells = [];
+    let inventoryItems = [];
 
     const basicFields = [
       "name", "player", "race", "class", "level", "background",
       "ac", "initiativeMisc", "speed", "prof",
       "currentHp", "maxHp", "tempHp", "hitDie", "hitDiceAvailable",
       "str", "dex", "con", "int", "wis", "cha",
-      "features", "spells", "inventory", "notes",
+      "features", "notes", "sheetSearch",
+      "damageAmount", "healAmount",
       "combatMode",
       "ds1", "ds2", "ds3", "df1", "df2", "df3"
     ];
@@ -879,6 +1082,22 @@
     ];
 
     const spellLevels = [1,2,3,4,5,6,7,8,9];
+
+    const classPresets = {
+      "Artificer": { hitDie: 8, saves: ["save_con", "save_int"], spellAbility: "int" },
+      "Barbarian": { hitDie: 12, saves: ["save_str", "save_con"], spellAbility: "cha" },
+      "Bard": { hitDie: 8, saves: ["save_dex", "save_cha"], spellAbility: "cha" },
+      "Cleric": { hitDie: 8, saves: ["save_wis", "save_cha"], spellAbility: "wis" },
+      "Druid": { hitDie: 8, saves: ["save_int", "save_wis"], spellAbility: "wis" },
+      "Fighter": { hitDie: 10, saves: ["save_str", "save_con"], spellAbility: "int" },
+      "Monk": { hitDie: 8, saves: ["save_str", "save_dex"], spellAbility: "wis" },
+      "Paladin": { hitDie: 10, saves: ["save_wis", "save_cha"], spellAbility: "cha" },
+      "Ranger": { hitDie: 10, saves: ["save_str", "save_dex"], spellAbility: "wis" },
+      "Rogue": { hitDie: 8, saves: ["save_dex", "save_int"], spellAbility: "int" },
+      "Sorcerer": { hitDie: 6, saves: ["save_con", "save_cha"], spellAbility: "cha" },
+      "Warlock": { hitDie: 8, saves: ["save_wis", "save_cha"], spellAbility: "cha" },
+      "Wizard": { hitDie: 6, saves: ["save_int", "save_wis"], spellAbility: "int" }
+    };
 
     function formatBonus(num) {
       return num >= 0 ? "+" + num : String(num);
@@ -926,9 +1145,15 @@
       name.textContent = item.name + " (" + item.ability.toUpperCase() + ")";
 
       const bonus = document.createElement("div");
-      bonus.className = "calc-bonus";
+      bonus.className = "calc-bonus rollable";
       bonus.id = item.id + "_bonus";
       bonus.textContent = "+0";
+      bonus.onclick = (e) => {
+        e.stopPropagation();
+        const base = getAbilityMod(item.ability);
+        const proficient = document.getElementById(item.id)?.checked || false;
+        rollD20(item.name + " Save", base + (proficient ? getProfBonus() : 0));
+      };
 
       row.appendChild(prof);
       row.appendChild(name);
@@ -956,9 +1181,13 @@
       name.textContent = item.name + " (" + item.ability.toUpperCase() + ")";
 
       const bonus = document.createElement("div");
-      bonus.className = "calc-bonus";
+      bonus.className = "calc-bonus rollable";
       bonus.id = item.id + "_bonus";
       bonus.textContent = "+0";
+      bonus.onclick = (e) => {
+        e.stopPropagation();
+        rollD20(item.name, getSkillTotal(item.id));
+      };
 
       row.appendChild(prof);
       row.appendChild(expertise);
@@ -1041,6 +1270,156 @@
       saveData();
     }
 
+    function addSpell() {
+      const diceValue = document.getElementById("newSpellDice").value;
+      const customDice = document.getElementById("newSpellCustomDice").value.trim();
+
+      const spell = {
+        id: Date.now(),
+        name: document.getElementById("newSpellName").value.trim() || "Unnamed Spell",
+        level: document.getElementById("newSpellLevel").value,
+        kind: document.getElementById("newSpellKind").value,
+        ability: document.getElementById("newSpellAbility").value,
+        dice: diceValue === "custom" ? (customDice || "") : diceValue,
+        type: document.getElementById("newSpellType").value,
+        notes: document.getElementById("newSpellNotes").value.trim()
+      };
+
+      spells.push(spell);
+
+      document.getElementById("newSpellName").value = "";
+      document.getElementById("newSpellCustomDice").value = "";
+      document.getElementById("newSpellNotes").value = "";
+      document.getElementById("newSpellDice").value = "";
+      document.getElementById("customSpellDiceWrap").style.display = "none";
+
+      renderSpells();
+      saveData();
+    }
+
+    function deleteSpell(id) {
+      spells = spells.filter(spell => spell.id !== id);
+      renderSpells();
+      saveData();
+    }
+
+    function renderSpells() {
+      const container = document.getElementById("spellCardList");
+      if (!container) return;
+      container.innerHTML = "";
+
+      if (spells.length === 0) {
+        container.innerHTML = `<p class="hint">No spells or cantrips added yet.</p>`;
+        return;
+      }
+
+      spells.forEach(spell => {
+        const spellAttackBonus = getAbilityMod(spell.ability) + getProfBonus();
+        const saveDc = 8 + getAbilityMod(spell.ability) + getProfBonus();
+
+        const subParts = [
+          spell.level === "Cantrip" ? "Cantrip" : `Level ${spell.level}`,
+          spell.kind
+        ];
+
+        if (spell.kind === "Spell Attack") subParts.push(`${formatBonus(spellAttackBonus)} to hit`);
+        if (spell.kind === "Save Spell") subParts.push(`Save DC ${saveDc}`);
+        if (spell.dice) subParts.push(`${spell.dice} ${spell.type}`);
+
+        const div = document.createElement("div");
+        div.className = "spell-card";
+        div.innerHTML = `
+          <div class="spell-main">
+            <div>
+              <div class="spell-title">${spell.name}</div>
+              <div class="spell-sub">${subParts.join(" • ")}</div>
+              <div class="spell-sub">${spell.notes || ""}</div>
+            </div>
+            <div>
+              ${spell.kind === "Spell Attack" ? `<button class="mini-button purple" onclick="rollSpellAttack(${spell.id})">Roll Hit</button>` : ""}
+              ${spell.dice ? `<button class="mini-button purple" onclick="rollSpellDamage(${spell.id})">Roll Dmg</button>` : ""}
+              <button class="mini-button danger" onclick="deleteSpell(${spell.id})">Delete</button>
+            </div>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function rollSpellAttack(id) {
+      const spell = spells.find(s => s.id === id);
+      if (!spell) return;
+      rollD20(spell.name, getAbilityMod(spell.ability) + getProfBonus());
+    }
+
+    function rollSpellDamage(id) {
+      const spell = spells.find(s => s.id === id);
+      if (!spell || !spell.dice) return;
+      rollDamage(spell.name, spell.dice, 0);
+    }
+
+    function addInventoryItem() {
+      const item = {
+        id: Date.now(),
+        category: document.getElementById("newInventoryCategory").value,
+        name: document.getElementById("newInventoryName").value.trim() || "Unnamed Item",
+        qty: Number(document.getElementById("newInventoryQty").value) || 1,
+        notes: document.getElementById("newInventoryNotes").value.trim()
+      };
+
+      inventoryItems.push(item);
+
+      document.getElementById("newInventoryName").value = "";
+      document.getElementById("newInventoryQty").value = 1;
+      document.getElementById("newInventoryNotes").value = "";
+
+      renderInventory();
+      saveData();
+    }
+
+    function deleteInventoryItem(id) {
+      inventoryItems = inventoryItems.filter(item => item.id !== id);
+      renderInventory();
+      saveData();
+    }
+
+    function renderInventory() {
+      const container = document.getElementById("inventoryList");
+      if (!container) return;
+      container.innerHTML = "";
+
+      if (inventoryItems.length === 0) {
+        container.innerHTML = `<p class="hint">No inventory items added yet.</p>`;
+        return;
+      }
+
+      const categories = [...new Set(inventoryItems.map(item => item.category))];
+
+      categories.forEach(category => {
+        const group = document.createElement("div");
+        group.className = "inventory-category";
+        group.innerHTML = `<div class="inventory-title">${category}</div>`;
+
+        inventoryItems.filter(item => item.category === category).forEach(item => {
+          const row = document.createElement("div");
+          row.className = "spell-main";
+          row.style.marginTop = "10px";
+          row.innerHTML = `
+            <div>
+              <div class="inventory-sub"><strong>${item.qty}× ${item.name}</strong></div>
+              <div class="inventory-sub">${item.notes || ""}</div>
+            </div>
+            <div>
+              <button class="mini-button danger" onclick="deleteInventoryItem(${item.id})">Delete</button>
+            </div>
+          `;
+          group.appendChild(row);
+        });
+
+        container.appendChild(group);
+      });
+    }
+
     function renderAttacks() {
       const container = document.getElementById("attackList");
       container.innerHTML = "";
@@ -1060,10 +1439,12 @@
         div.className = "saved-attack";
         div.innerHTML = `
           <div>
-            <div class="saved-attack-main">${attack.name}: ${formatBonus(hitBonus)} to hit</div>
+            <div class="saved-attack-main rollable" onclick="rollAttack(${attack.id})">${attack.name}: ${formatBonus(hitBonus)} to hit</div>
             <div class="saved-attack-sub">${dmgText} • ${attack.ability.toUpperCase()} ${attack.proficient ? "• Proficient" : ""}</div>
           </div>
           <div>
+            <button class="mini-button purple" onclick="rollAttack(${attack.id})">Roll Hit</button>
+            <button class="mini-button purple" onclick="rollAttackDamage(${attack.id})">Roll Dmg</button>
             <button class="mini-button danger" onclick="deleteAttack(${attack.id})">Delete</button>
           </div>
         `;
@@ -1071,7 +1452,53 @@
       });
     }
 
+    function updateProficiencyFromLevel() {
+      const level = Number(document.getElementById("level").value) || 1;
+      let bonus = 2;
+      if (level >= 17) bonus = 6;
+      else if (level >= 13) bonus = 5;
+      else if (level >= 9) bonus = 4;
+      else if (level >= 5) bonus = 3;
+      document.getElementById("prof").value = bonus;
+    }
+
+    function applyClassPreset() {
+      const className = document.getElementById("class").value;
+      const preset = classPresets[className];
+      if (!preset) return;
+
+      document.getElementById("hitDie").value = preset.hitDie;
+
+      savingThrows.forEach(save => {
+        const box = document.getElementById(save.id);
+        if (box) box.checked = preset.saves.includes(save.id);
+      });
+
+      const spellAbility = document.getElementById("newSpellAbility");
+      if (spellAbility) spellAbility.value = preset.spellAbility;
+
+      const level = Number(document.getElementById("level").value) || 1;
+      document.getElementById("hitDiceAvailable").value = level;
+      updateModifiers();
+      saveData();
+    }
+
+    function rollAttack(id) {
+      const attack = attacks.find(a => a.id === id);
+      if (!attack) return;
+      const bonus = getAbilityMod(attack.ability) + (attack.proficient ? getProfBonus() : 0) + attack.hitMisc;
+      rollD20(attack.name, bonus);
+    }
+
+    function rollAttackDamage(id) {
+      const attack = attacks.find(a => a.id === id);
+      if (!attack) return;
+      const bonus = getAbilityMod(attack.ability) + attack.dmgMisc;
+      rollDamage(attack.name, attack.dice, bonus);
+    }
+
     function updateModifiers() {
+      updateProficiencyFromLevel();
       abilities.forEach(ability => {
         const mod = getAbilityMod(ability);
         document.getElementById(ability + "Mod").textContent = formatBonus(mod);
@@ -1193,6 +1620,40 @@
       hpPill.classList.toggle("low-hp", maxHp > 0 && hp <= maxHp / 3);
     }
 
+    function applyDamage() {
+      const amount = Number(document.getElementById("damageAmount").value) || 0;
+      const tempHp = Number(document.getElementById("tempHp").value) || 0;
+      const currentHp = Number(document.getElementById("currentHp").value) || 0;
+
+      let remainingDamage = amount;
+      let newTemp = tempHp;
+
+      if (newTemp > 0) {
+        const absorbed = Math.min(newTemp, remainingDamage);
+        newTemp -= absorbed;
+        remainingDamage -= absorbed;
+      }
+
+      document.getElementById("tempHp").value = newTemp;
+      document.getElementById("currentHp").value = currentHp - remainingDamage;
+      document.getElementById("damageAmount").value = 0;
+
+      updateModifiers();
+      saveData();
+    }
+
+    function applyHeal() {
+      const amount = Number(document.getElementById("healAmount").value) || 0;
+      const currentHp = Number(document.getElementById("currentHp").value) || 0;
+      const maxHp = Number(document.getElementById("maxHp").value) || 0;
+
+      document.getElementById("currentHp").value = Math.min(maxHp, currentHp + amount);
+      document.getElementById("healAmount").value = 0;
+
+      updateModifiers();
+      saveData();
+    }
+
     function changeHp(amount) {
       const currentHp = document.getElementById("currentHp");
       const maxHp = Number(document.getElementById("maxHp").value);
@@ -1213,6 +1674,48 @@
 
     function rollDie(sides) {
       return Math.floor(Math.random() * sides) + 1;
+    }
+
+    function showDicePop(text) {
+      const pop = document.getElementById("dicePop");
+      pop.textContent = text;
+      pop.style.display = "block";
+      clearTimeout(window.dicePopTimer);
+      window.dicePopTimer = setTimeout(() => {
+        pop.style.display = "none";
+      }, 2600);
+    }
+
+    function rollD20(label, bonus) {
+      const roll = rollDie(20);
+      const total = roll + bonus;
+      const text = `${label}: d20 ${roll} ${formatBonus(bonus)} = ${total}`;
+      document.getElementById("diceResult").textContent = text;
+      showDicePop(text);
+    }
+
+    function rollDamage(label, diceText, bonus) {
+      const parts = diceText.match(/^(\d+)d(\d+)$/i);
+      if (!parts) {
+        showDicePop(`${label}: custom dice ${diceText}`);
+        return;
+      }
+
+      const count = Number(parts[1]);
+      const sides = Number(parts[2]);
+      let rolls = [];
+      let sum = 0;
+
+      for (let i = 0; i < count; i++) {
+        const r = rollDie(sides);
+        rolls.push(r);
+        sum += r;
+      }
+
+      const total = sum + bonus;
+      const text = `${label}: ${diceText} [${rolls.join(", ")}] ${formatBonus(bonus)} = ${total}`;
+      document.getElementById("diceResult").textContent = text;
+      showDicePop(text);
     }
 
     function shortRest() {
@@ -1285,11 +1788,11 @@
           collapsed.push(card.dataset.section);
         }
       });
-      localStorage.setItem("dndSheetV4Collapsed", JSON.stringify(collapsed));
+      localStorage.setItem("dndSheetV5Collapsed", JSON.stringify(collapsed));
     }
 
     function loadCollapsedSections() {
-      const saved = localStorage.getItem("dndSheetV4Collapsed");
+      const saved = localStorage.getItem("dndSheetV5Collapsed");
       if (!saved) return;
 
       const collapsed = JSON.parse(saved);
@@ -1307,8 +1810,8 @@
       const confirmReset = confirm("Are you sure you want to reset this character sheet?");
       if (!confirmReset) return;
 
-      localStorage.removeItem("dndCharacterSheetV4");
-      localStorage.removeItem("dndSheetV4Collapsed");
+      localStorage.removeItem("dndCharacterSheetV5");
+      localStorage.removeItem("dndSheetV5Collapsed");
       location.reload();
     }
 
@@ -1338,17 +1841,19 @@
       });
 
       data.attacks = attacks;
+      data.spells = spells;
+      data.inventoryItems = inventoryItems;
 
       spellLevels.forEach(level => {
         data[`spell${level}_used`] = getUsedSpellSlots(level);
       });
 
-      localStorage.setItem("dndCharacterSheetV4", JSON.stringify(data));
+      localStorage.setItem("dndCharacterSheetV5", JSON.stringify(data));
       updateStickyBar();
     }
 
     function loadData() {
-      const saved = localStorage.getItem("dndCharacterSheetV4");
+      const saved = localStorage.getItem("dndCharacterSheetV5");
       if (!saved) return;
 
       const data = JSON.parse(saved);
@@ -1368,7 +1873,11 @@
       });
 
       attacks = Array.isArray(data.attacks) ? data.attacks : [];
+      spells = Array.isArray(data.spells) ? data.spells : [];
+      inventoryItems = Array.isArray(data.inventoryItems) ? data.inventoryItems : [];
       renderAttacks();
+      renderSpells();
+      renderInventory();
 
       updateSpellSlots();
 
@@ -1378,6 +1887,20 @@
           document.getElementById(`spell${level}_slot${i}`)?.classList.add("used");
         }
         updateSpellSummary(level);
+      });
+    }
+
+    function applySearchFilter() {
+      const query = document.getElementById("sheetSearch").value.toLowerCase().trim();
+
+      document.querySelectorAll(".card[data-section]").forEach(card => {
+        if (!query) {
+          card.style.display = "";
+          return;
+        }
+
+        const text = card.innerText.toLowerCase();
+        card.style.display = text.includes(query) ? "" : "none";
       });
     }
 
@@ -1402,12 +1925,23 @@
         document.getElementById("customDiceWrap").style.display =
           document.getElementById("newAttackDice").value === "custom" ? "block" : "none";
       });
+
+      document.getElementById("newSpellDice").addEventListener("change", () => {
+        document.getElementById("customSpellDiceWrap").style.display =
+          document.getElementById("newSpellDice").value === "custom" ? "block" : "none";
+      });
+
+      document.getElementById("class").addEventListener("change", applyClassPreset);
+
+      document.getElementById("sheetSearch").addEventListener("input", applySearchFilter);
     }
 
     createCalculatedRows();
     createConditionButtons();
     createSpellSlots();
     loadData();
+    renderSpells();
+    renderInventory();
     loadCollapsedSections();
     setupListeners();
     updateModifiers();
