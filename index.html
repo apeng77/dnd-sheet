@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>D&D Character Sheet v18</title>
+  <title>D&D Character Sheet v19</title>
   <style>
     :root {
       --bg: #111827;
@@ -774,6 +774,89 @@
       display: none !important;
     }
 
+
+    .home-screen {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 5000;
+      padding: 24px;
+      overflow-y: auto;
+    }
+
+    .home-card {
+      max-width: 720px;
+      margin: 40px auto;
+      background: var(--card);
+      border: 1px solid #374151;
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.45);
+    }
+
+    .home-title {
+      margin-top: 0;
+      font-size: 28px;
+    }
+
+    .home-actions {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .home-actions button {
+      width: 100%;
+      min-height: 56px;
+      font-size: 17px;
+    }
+
+    .sheet-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .sheet-list-item {
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 12px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .sheet-list-title {
+      font-weight: bold;
+      color: #bfdbfe;
+    }
+
+    .sheet-list-sub {
+      color: var(--hint);
+      font-size: 13px;
+      margin-top: 3px;
+    }
+
+    .sheet-top-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .sheet-top-actions button {
+      margin: 0;
+      min-height: 40px;
+      font-size: 13px;
+      padding: 8px 10px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
     .footer {
       text-align: center;
       color: var(--hint);
@@ -837,6 +920,39 @@
   </style>
 </head>
 <body>
+
+  <div class="home-screen" id="homeScreen">
+    <div class="home-card">
+      <h1 class="home-title">D&D Character Sheets</h1>
+      <p class="hint">Create a new sheet or load a saved sheet from this device.</p>
+
+      <div id="homeMain">
+        <div class="home-actions">
+          <button class="success" onclick="showCreateSheet()">Create New Sheet</button>
+          <button class="purple" onclick="showLoadSheets()">Load Sheet</button>
+        </div>
+      </div>
+
+      <div id="createSheetPanel" class="hidden">
+        <h2>Create New Sheet</h2>
+        <label>Sheet Name</label>
+        <input id="newSheetName" placeholder="Ex: Thorne the Fighter">
+        <div class="home-actions">
+          <button class="success" onclick="createNewSheet()">Create Sheet</button>
+          <button class="ghost" onclick="showHomeMain()">Back</button>
+        </div>
+      </div>
+
+      <div id="loadSheetPanel" class="hidden">
+        <h2>Load Sheet</h2>
+        <div class="sheet-list" id="sheetList"></div>
+        <div class="home-actions">
+          <button class="ghost" onclick="showHomeMain()">Back</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="sticky-bar">
     <div class="sticky-content">
       <div class="sticky-name" id="stickyName">Unnamed Character</div>
@@ -849,7 +965,14 @@
   </div>
 
   <div class="container" id="app">
-    <h1>D&D Character Sheet v18</h1>
+    <h1>D&D Character Sheet v19</h1>
+
+    <div class="sheet-top-actions">
+      <button class="ghost" onclick="goToSheetHome()">Sheet Home</button>
+      <button class="success" onclick="saveData()">Save Current Sheet</button>
+      <button class="purple" onclick="duplicateCurrentSheet()">Duplicate Sheet</button>
+      <button class="danger" onclick="deleteCurrentSheet()">Delete Sheet</button>
+    </div>
 
     <div class="combat-toggle">
       <input type="checkbox" id="combatMode">
@@ -1499,6 +1622,7 @@
     let inventoryItems = [];
     let classFeatures = [];
     let turnState = { Action: false, Bonus: false, Reaction: false, Movement: false };
+    let currentSheetId = null;
 
     const basicFields = [
       "name", "player", "race", "class", "level", "background",
@@ -1781,6 +1905,245 @@
     function getSpellSaveDc() {
       return 8 + getAbilityMod(getSpellAbility()) + getProfBonus();
     }
+
+
+    function getSheetIndex() {
+      return JSON.parse(localStorage.getItem("dndSheetIndexV19") || "[]");
+    }
+
+    function saveSheetIndex(index) {
+      localStorage.setItem("dndSheetIndexV19", JSON.stringify(index));
+    }
+
+    function getSheetStorageKey(id) {
+      return "dndCharacterSheetV19_" + id;
+    }
+
+    function getCollapsedStorageKey(id) {
+      return "dndSheetV19Collapsed_" + id;
+    }
+
+    function generateSheetId() {
+      return "sheet_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+    }
+
+    function showHomeMain() {
+      document.getElementById("homeMain").classList.remove("hidden");
+      document.getElementById("createSheetPanel").classList.add("hidden");
+      document.getElementById("loadSheetPanel").classList.add("hidden");
+    }
+
+    function showCreateSheet() {
+      document.getElementById("homeMain").classList.add("hidden");
+      document.getElementById("createSheetPanel").classList.remove("hidden");
+      document.getElementById("loadSheetPanel").classList.add("hidden");
+      document.getElementById("newSheetName").focus();
+    }
+
+    function showLoadSheets() {
+      document.getElementById("homeMain").classList.add("hidden");
+      document.getElementById("createSheetPanel").classList.add("hidden");
+      document.getElementById("loadSheetPanel").classList.remove("hidden");
+      renderSheetList();
+    }
+
+    function goToSheetHome() {
+      saveData();
+      document.getElementById("homeScreen").classList.remove("hidden");
+      showHomeMain();
+    }
+
+    function createNewSheet() {
+      const nameInput = document.getElementById("newSheetName");
+      const sheetName = nameInput.value.trim() || "New Character";
+      const id = generateSheetId();
+
+      const index = getSheetIndex();
+      index.push({ id, name: sheetName, updatedAt: new Date().toISOString() });
+      saveSheetIndex(index);
+
+      currentSheetId = id;
+      localStorage.setItem("dndActiveSheetIdV19", currentSheetId);
+
+      clearCurrentForm();
+      document.getElementById("name").value = sheetName;
+      nameInput.value = "";
+
+      saveData();
+      document.getElementById("homeScreen").classList.add("hidden");
+      updateStickyBar();
+    }
+
+    function renderSheetList() {
+      const list = document.getElementById("sheetList");
+      const index = getSheetIndex();
+      list.innerHTML = "";
+
+      if (!index.length) {
+        list.innerHTML = `<p class="hint">No saved sheets yet.</p>`;
+        return;
+      }
+
+      index.slice().sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)).forEach(sheet => {
+        const item = document.createElement("div");
+        item.className = "sheet-list-item";
+        const date = sheet.updatedAt ? new Date(sheet.updatedAt).toLocaleString() : "Unknown date";
+        item.innerHTML = `
+          <div>
+            <div class="sheet-list-title">${sheet.name || "Unnamed Sheet"}</div>
+            <div class="sheet-list-sub">Last saved: ${date}</div>
+          </div>
+          <div>
+            <button class="mini-button success" onclick="loadSheetById('${sheet.id}')">Load</button>
+            <button class="mini-button danger" onclick="deleteSheetFromHome('${sheet.id}')">Delete</button>
+          </div>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    function loadSheetById(id) {
+      currentSheetId = id;
+      localStorage.setItem("dndActiveSheetIdV19", currentSheetId);
+      clearCurrentForm(false);
+      loadData();
+      loadCollapsedSections();
+      updateModifiers();
+      updateDeathStatus();
+      renderTurnTracker();
+      document.getElementById("app").classList.toggle("combat-mode", document.getElementById("combatMode").checked);
+      document.getElementById("homeScreen").classList.add("hidden");
+    }
+
+    function deleteSheetFromHome(id) {
+      const confirmDelete = confirm("Delete this saved sheet?");
+      if (!confirmDelete) return;
+
+      localStorage.removeItem(getSheetStorageKey(id));
+      localStorage.removeItem(getCollapsedStorageKey(id));
+
+      const index = getSheetIndex().filter(sheet => sheet.id !== id);
+      saveSheetIndex(index);
+
+      if (currentSheetId === id) {
+        currentSheetId = null;
+        localStorage.removeItem("dndActiveSheetIdV19");
+      }
+
+      renderSheetList();
+    }
+
+    function updateSheetIndexName() {
+      if (!currentSheetId) return;
+      const index = getSheetIndex();
+      const entry = index.find(sheet => sheet.id === currentSheetId);
+      if (!entry) return;
+      entry.name = document.getElementById("name").value || "Unnamed Character";
+      entry.updatedAt = new Date().toISOString();
+      saveSheetIndex(index);
+    }
+
+    function duplicateCurrentSheet() {
+      if (!currentSheetId) return;
+      saveData();
+
+      const oldData = localStorage.getItem(getSheetStorageKey(currentSheetId));
+      if (!oldData) return;
+
+      const newId = generateSheetId();
+      const oldName = document.getElementById("name").value || "Unnamed Character";
+      const newName = oldName + " Copy";
+
+      localStorage.setItem(getSheetStorageKey(newId), oldData);
+
+      const index = getSheetIndex();
+      index.push({ id: newId, name: newName, updatedAt: new Date().toISOString() });
+      saveSheetIndex(index);
+
+      currentSheetId = newId;
+      localStorage.setItem("dndActiveSheetIdV19", currentSheetId);
+      document.getElementById("name").value = newName;
+      saveData();
+      showDicePop("Sheet duplicated.");
+    }
+
+    function deleteCurrentSheet() {
+      if (!currentSheetId) return;
+      const confirmDelete = confirm("Delete the current sheet?");
+      if (!confirmDelete) return;
+
+      const id = currentSheetId;
+      localStorage.removeItem(getSheetStorageKey(id));
+      localStorage.removeItem(getCollapsedStorageKey(id));
+      saveSheetIndex(getSheetIndex().filter(sheet => sheet.id !== id));
+      currentSheetId = null;
+      localStorage.removeItem("dndActiveSheetIdV19");
+      clearCurrentForm();
+      document.getElementById("homeScreen").classList.remove("hidden");
+      showHomeMain();
+    }
+
+    function clearCurrentForm(resetDefaults = true) {
+      document.querySelectorAll("input, textarea").forEach(el => {
+        if (el.type === "checkbox") {
+          el.checked = false;
+        } else if (el.type === "radio") {
+          el.checked = el.name === "rollMode" && el.value === "normal";
+        } else if (!el.readOnly) {
+          el.value = "";
+        }
+      });
+
+      document.querySelectorAll("select").forEach(el => {
+        el.selectedIndex = 0;
+      });
+
+      if (resetDefaults) {
+        document.getElementById("level").value = 1;
+        document.getElementById("ac").value = 10;
+        document.getElementById("currentHp").value = 10;
+        document.getElementById("maxHp").value = 10;
+        document.getElementById("tempHp").value = 0;
+        document.getElementById("hitDiceAvailable").value = 1;
+        document.getElementById("damageAmount").value = 0;
+        document.getElementById("healAmount").value = 0;
+        abilities.forEach(ability => {
+          const input = document.getElementById(ability);
+          if (input) input.value = 10;
+        });
+      }
+
+      attacks = [];
+      spells = [];
+      inventoryItems = [];
+      classFeatures = [];
+      turnState = { Action: false, Bonus: false, Reaction: false, Movement: false };
+
+      document.querySelectorAll(".condition").forEach(el => el.classList.remove("active"));
+      clearDeathSaves();
+
+      renderAttacks();
+      renderSpells();
+      renderInventory();
+      renderFeatures();
+      renderTurnTracker();
+      updateModifiers();
+    }
+
+    function initializeSheetDatabase() {
+      const index = getSheetIndex();
+      const activeId = localStorage.getItem("dndActiveSheetIdV19");
+
+      if (activeId && index.some(sheet => sheet.id === activeId)) {
+        currentSheetId = activeId;
+        loadData();
+        document.getElementById("homeScreen").classList.add("hidden");
+      } else {
+        document.getElementById("homeScreen").classList.remove("hidden");
+        showHomeMain();
+      }
+    }
+
 
     function createCalculatedRows() {
       const savesContainer = document.getElementById("savingThrowsList");
@@ -3098,11 +3461,11 @@
           collapsed.push(card.dataset.section);
         }
       });
-      localStorage.setItem("dndSheetV18Collapsed", JSON.stringify(collapsed));
+      if (currentSheetId) localStorage.setItem(getCollapsedStorageKey(currentSheetId), JSON.stringify(collapsed));
     }
 
     function loadCollapsedSections() {
-      const saved = localStorage.getItem("dndSheetV18Collapsed");
+      const saved = currentSheetId ? localStorage.getItem(getCollapsedStorageKey(currentSheetId)) : null;
       let collapsed;
 
       if (!saved) {
@@ -3124,9 +3487,12 @@
       const confirmReset = confirm("Are you sure you want to reset this character sheet?");
       if (!confirmReset) return;
 
-      localStorage.removeItem("dndCharacterSheetV18");
-      localStorage.removeItem("dndSheetV18Collapsed");
-      location.reload();
+      if (currentSheetId) {
+        localStorage.removeItem(getSheetStorageKey(currentSheetId));
+        localStorage.removeItem(getCollapsedStorageKey(currentSheetId));
+      }
+      clearCurrentForm();
+      saveData();
     }
 
     function getAllFieldIds() {
@@ -3166,12 +3532,14 @@
         data[`spell${level}_used`] = getUsedSpellSlots(level);
       });
 
-      localStorage.setItem("dndCharacterSheetV18", JSON.stringify(data));
+      if (!currentSheetId) return;
+      localStorage.setItem(getSheetStorageKey(currentSheetId), JSON.stringify(data));
+      updateSheetIndexName();
       updateStickyBar();
     }
 
     function loadData() {
-      const saved = localStorage.getItem("dndCharacterSheetV18");
+      const saved = currentSheetId ? localStorage.getItem(getSheetStorageKey(currentSheetId)) : null;
       if (!saved) return;
 
       const data = JSON.parse(saved);
@@ -3327,7 +3695,7 @@
     createConditionButtons();
     createSpellSlots();
     setupAttackBuilderOptions();
-    loadData();
+    initializeSheetDatabase();
     renderSpells();
     renderInventory();
     renderFeatures();
