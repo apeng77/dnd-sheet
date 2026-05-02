@@ -3,38 +3,121 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>D&D Character Sheet v2</title>
+  <title>D&D Character Sheet v3</title>
   <style>
+    :root {
+      --bg: #111827;
+      --card: #1f2937;
+      --input: #374151;
+      --text: #f9fafb;
+      --muted: #d1d5db;
+      --hint: #9ca3af;
+      --blue: #2563eb;
+      --green: #16a34a;
+      --red: #dc2626;
+      --yellow: #f59e0b;
+      --purple: #7c3aed;
+    }
+
     body {
       font-family: Arial, sans-serif;
-      background: #111827;
-      color: #f9fafb;
+      background: var(--bg);
+      color: var(--text);
       margin: 0;
-      padding: 16px;
+      padding: 92px 16px 16px;
     }
 
     .container {
-      max-width: 1000px;
+      max-width: 1100px;
       margin: auto;
     }
 
-    h1, h2 {
+    .sticky-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: #020617;
+      border-bottom: 1px solid #374151;
+      padding: 10px 12px;
+      z-index: 1000;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+    }
+
+    .sticky-content {
+      max-width: 1100px;
+      margin: auto;
+      display: grid;
+      grid-template-columns: 1.3fr repeat(4, auto);
+      gap: 8px;
+      align-items: center;
+    }
+
+    .sticky-name {
+      font-weight: bold;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .sticky-pill {
+      background: #1f2937;
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .low-hp {
+      background: #7f1d1d !important;
+      color: #fecaca;
+    }
+
+    h1, h2, h3 {
       margin-bottom: 10px;
     }
 
     .card {
-      background: #1f2937;
+      background: var(--card);
       border-radius: 12px;
       padding: 16px;
       margin-bottom: 16px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
 
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      gap: 10px;
+    }
+
+    .section-header h2 {
+      margin: 0;
+    }
+
+    .collapse-btn {
+      background: #4b5563;
+      padding: 7px 10px;
+      margin: 0;
+      font-size: 13px;
+    }
+
+    .section-content {
+      margin-top: 14px;
+    }
+
+    .collapsed .section-content {
+      display: none;
+    }
+
     label {
       display: block;
       font-size: 14px;
       margin-top: 10px;
-      color: #d1d5db;
+      color: var(--muted);
     }
 
     input, textarea, select {
@@ -44,7 +127,7 @@
       margin-top: 4px;
       border-radius: 8px;
       border: none;
-      background: #374151;
+      background: var(--input);
       color: white;
       font-size: 16px;
     }
@@ -60,9 +143,15 @@
       gap: 12px;
     }
 
+    .grid-wide {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+    }
+
     .stat-box {
       text-align: center;
-      background: #374151;
+      background: var(--input);
       padding: 12px;
       border-radius: 10px;
     }
@@ -84,31 +173,20 @@
       margin: 5px 5px 5px 0;
       border: none;
       border-radius: 8px;
-      background: #2563eb;
+      background: var(--blue);
       color: white;
       font-size: 15px;
       cursor: pointer;
     }
 
     button:hover {
-      background: #1d4ed8;
+      filter: brightness(0.92);
     }
 
-    .danger {
-      background: #dc2626;
-    }
-
-    .danger:hover {
-      background: #b91c1c;
-    }
-
-    .success {
-      background: #16a34a;
-    }
-
-    .success:hover {
-      background: #15803d;
-    }
+    .danger { background: var(--red); }
+    .success { background: var(--green); }
+    .warning { background: var(--yellow); color: #111827; }
+    .purple { background: var(--purple); }
 
     .small-buttons button {
       width: auto;
@@ -134,18 +212,22 @@
 
     .calc-list {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(285px, 1fr));
       gap: 10px;
     }
 
     .calc-row {
       display: grid;
-      grid-template-columns: 34px 1fr 58px;
+      grid-template-columns: 34px 34px 1fr 58px;
       align-items: center;
       gap: 8px;
-      background: #374151;
+      background: var(--input);
       padding: 10px;
       border-radius: 10px;
+    }
+
+    .save-row {
+      grid-template-columns: 34px 1fr 58px;
     }
 
     .calc-row input[type="checkbox"] {
@@ -166,225 +248,447 @@
     }
 
     .hint {
-      color: #9ca3af;
+      color: var(--hint);
       font-size: 13px;
       margin-top: -4px;
       margin-bottom: 12px;
     }
 
+    .condition-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+      gap: 8px;
+    }
+
+    .condition {
+      background: var(--input);
+      border: 1px solid #4b5563;
+      border-radius: 999px;
+      padding: 10px;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+      font-size: 14px;
+    }
+
+    .condition.active {
+      background: #7c2d12;
+      border-color: #fb923c;
+      color: #ffedd5;
+      font-weight: bold;
+    }
+
+    .combat-mode .non-combat {
+      display: none;
+    }
+
+    .combat-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #111827;
+      border: 1px solid #374151;
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+    }
+
+    .combat-toggle input {
+      width: 24px;
+      height: 24px;
+      margin: 0;
+    }
+
+    .attack-card {
+      background: var(--input);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .attack-output {
+      margin-top: 10px;
+      background: #111827;
+      border-radius: 8px;
+      padding: 10px;
+      color: #bfdbfe;
+      font-weight: bold;
+    }
+
+    .spell-slot-row {
+      background: var(--input);
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+
+    .slot-bubbles {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .slot-bubble {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #111827;
+      border: 2px solid #60a5fa;
+      cursor: pointer;
+    }
+
+    .slot-bubble.used {
+      background: #4b5563;
+      border-color: #6b7280;
+    }
+
+    .passive-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 12px;
+    }
+
+    .passive-box {
+      background: var(--input);
+      padding: 14px;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .passive-value {
+      font-size: 28px;
+      color: #93c5fd;
+      font-weight: bold;
+    }
+
     .footer {
       text-align: center;
-      color: #9ca3af;
+      color: var(--hint);
       font-size: 13px;
       margin-top: 24px;
+    }
+
+    @media (max-width: 650px) {
+      body {
+        padding-top: 122px;
+      }
+
+      .sticky-content {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+
+      .sticky-name {
+        grid-column: span 3;
+      }
+
+      .sticky-pill {
+        text-align: center;
+        font-size: 13px;
+      }
+
+      .calc-row {
+        grid-template-columns: 30px 30px 1fr 48px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>D&D Character Sheet v2</h1>
+  <div class="sticky-bar">
+    <div class="sticky-content">
+      <div class="sticky-name" id="stickyName">Unnamed Character</div>
+      <div class="sticky-pill" id="stickyHp">HP 10/10</div>
+      <div class="sticky-pill" id="stickyAc">AC 10</div>
+      <div class="sticky-pill" id="stickyInit">Init +0</div>
+      <div class="sticky-pill" id="stickyPassive">PP 10</div>
+    </div>
+  </div>
 
-    <div class="card">
-      <h2>Character Info</h2>
-      <div class="grid">
-        <div>
-          <label>Character Name</label>
-          <input id="name" placeholder="Ex: Kael Stormborn">
-        </div>
-        <div>
-          <label>Player Name</label>
-          <input id="player" placeholder="Ex: Andy">
-        </div>
-        <div>
-          <label>Race</label>
-          <input id="race" placeholder="Ex: Human">
-        </div>
-        <div>
-          <label>Class</label>
-          <input id="class" placeholder="Ex: Fighter">
-        </div>
-        <div>
-          <label>Level</label>
-          <input id="level" type="number" value="1">
-        </div>
-        <div>
-          <label>Background</label>
-          <input id="background" placeholder="Ex: Soldier">
+  <div class="container" id="app">
+    <h1>D&D Character Sheet v3</h1>
+
+    <div class="combat-toggle">
+      <input type="checkbox" id="combatMode">
+      <strong>Quick Combat Mode</strong>
+      <span class="hint">Shows only the most useful combat sections.</span>
+    </div>
+
+    <div class="card non-combat" data-section="character">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>Character Info</h2>
+        <button class="collapse-btn">Collapse</button>
+      </div>
+      <div class="section-content">
+        <div class="grid">
+          <div>
+            <label>Character Name</label>
+            <input id="name" placeholder="Ex: Kael Stormborn">
+          </div>
+          <div>
+            <label>Player Name</label>
+            <input id="player" placeholder="Ex: Andy">
+          </div>
+          <div>
+            <label>Race</label>
+            <input id="race" placeholder="Ex: Human">
+          </div>
+          <div>
+            <label>Class</label>
+            <input id="class" placeholder="Ex: Fighter">
+          </div>
+          <div>
+            <label>Level</label>
+            <input id="level" type="number" value="1">
+          </div>
+          <div>
+            <label>Background</label>
+            <input id="background" placeholder="Ex: Soldier">
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="card">
-      <h2>Main Stats</h2>
-      <div class="grid">
-        <div>
-          <label>Armor Class</label>
-          <input id="ac" type="number" value="10">
-        </div>
-        <div>
-          <label>Initiative</label>
-          <input id="initiative" placeholder="+0">
-        </div>
-        <div>
-          <label>Speed</label>
-          <input id="speed" placeholder="30 ft">
-        </div>
-        <div>
-          <label>Proficiency Bonus</label>
-          <input id="prof" type="number" value="2">
+    <div class="card" data-section="mainStats">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>Main Stats</h2>
+        <button class="collapse-btn">Collapse</button>
+      </div>
+      <div class="section-content">
+        <div class="grid">
+          <div>
+            <label>Armor Class</label>
+            <input id="ac" type="number" value="10">
+          </div>
+          <div>
+            <label>Initiative</label>
+            <input id="initiative" readonly>
+          </div>
+          <div>
+            <label>Initiative Misc Bonus</label>
+            <input id="initiativeMisc" type="number" value="0">
+          </div>
+          <div>
+            <label>Speed</label>
+            <input id="speed" placeholder="30 ft">
+          </div>
+          <div>
+            <label>Proficiency Bonus</label>
+            <input id="prof" type="number" value="2">
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="card">
-      <h2>Hit Points</h2>
-      <div class="grid">
-        <div>
-          <label>Current HP</label>
-          <input id="currentHp" type="number" value="10">
-        </div>
-        <div>
-          <label>Max HP</label>
-          <input id="maxHp" type="number" value="10">
-        </div>
-        <div>
-          <label>Temp HP</label>
-          <input id="tempHp" type="number" value="0">
-        </div>
+    <div class="card" data-section="hp">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>Hit Points</h2>
+        <button class="collapse-btn">Collapse</button>
       </div>
+      <div class="section-content">
+        <div class="grid">
+          <div>
+            <label>Current HP</label>
+            <input id="currentHp" type="number" value="10">
+          </div>
+          <div>
+            <label>Max HP</label>
+            <input id="maxHp" type="number" value="10">
+          </div>
+          <div>
+            <label>Temp HP</label>
+            <input id="tempHp" type="number" value="0">
+          </div>
+        </div>
 
-      <div class="small-buttons">
-        <button onclick="changeHp(1)">+1 HP</button>
-        <button onclick="changeHp(5)">+5 HP</button>
-        <button onclick="changeHp(-1)" class="danger">-1 HP</button>
-        <button onclick="changeHp(-5)" class="danger">-5 HP</button>
-        <button onclick="fullHeal()" class="success">Full Heal</button>
-      </div>
+        <div class="small-buttons">
+          <button onclick="changeHp(1)">+1 HP</button>
+          <button onclick="changeHp(5)">+5 HP</button>
+          <button onclick="changeHp(-1)" class="danger">-1 HP</button>
+          <button onclick="changeHp(-5)" class="danger">-5 HP</button>
+          <button onclick="shortRest()" class="warning">Short Rest</button>
+          <button onclick="longRest()" class="success">Long Rest</button>
+        </div>
 
-      <h3>Death Saves</h3>
-      <div class="death-row">
-        <span>Successes:</span>
-        <div class="checkbox-row">
-          <input type="checkbox" id="ds1">
-          <input type="checkbox" id="ds2">
-          <input type="checkbox" id="ds3">
+        <h3>Death Saves</h3>
+        <div class="death-row">
+          <span>Successes:</span>
+          <div class="checkbox-row">
+            <input type="checkbox" id="ds1">
+            <input type="checkbox" id="ds2">
+            <input type="checkbox" id="ds3">
+          </div>
         </div>
-      </div>
-      <div class="death-row">
-        <span>Failures:</span>
-        <div class="checkbox-row">
-          <input type="checkbox" id="df1">
-          <input type="checkbox" id="df2">
-          <input type="checkbox" id="df3">
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Ability Scores</h2>
-      <div class="grid">
-        <div class="stat-box">
-          <label>Strength</label>
-          <input id="str" type="number" value="10">
-          <div class="modifier" id="strMod">+0</div>
-        </div>
-        <div class="stat-box">
-          <label>Dexterity</label>
-          <input id="dex" type="number" value="10">
-          <div class="modifier" id="dexMod">+0</div>
-        </div>
-        <div class="stat-box">
-          <label>Constitution</label>
-          <input id="con" type="number" value="10">
-          <div class="modifier" id="conMod">+0</div>
-        </div>
-        <div class="stat-box">
-          <label>Intelligence</label>
-          <input id="int" type="number" value="10">
-          <div class="modifier" id="intMod">+0</div>
-        </div>
-        <div class="stat-box">
-          <label>Wisdom</label>
-          <input id="wis" type="number" value="10">
-          <div class="modifier" id="wisMod">+0</div>
-        </div>
-        <div class="stat-box">
-          <label>Charisma</label>
-          <input id="cha" type="number" value="10">
-          <div class="modifier" id="chaMod">+0</div>
+        <div class="death-row">
+          <span>Failures:</span>
+          <div class="checkbox-row">
+            <input type="checkbox" id="df1">
+            <input type="checkbox" id="df2">
+            <input type="checkbox" id="df3">
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="card">
-      <h2>Saving Throws</h2>
-      <p class="hint">Check the box if your character is proficient. Bonus = ability modifier + proficiency bonus.</p>
-      <div class="calc-list" id="savingThrowsList"></div>
-    </div>
-
-    <div class="card">
-      <h2>Skills</h2>
-      <p class="hint">Check the box if your character is proficient in that skill.</p>
-      <div class="calc-list" id="skillsList"></div>
-    </div>
-
-    <div class="card">
-      <h2>Weapons & Actions</h2>
-      <textarea id="weapons" placeholder="Ex: Longsword +5 to hit, 1d8+3 slashing"></textarea>
-    </div>
-
-    <div class="card">
-      <h2>Features & Traits</h2>
-      <textarea id="features" placeholder="Class features, racial traits, feats, etc."></textarea>
-    </div>
-
-    <div class="card">
-      <h2>Spell Slots</h2>
-      <div class="grid">
-        <div>
-          <label>Level 1</label>
-          <input id="spell1" placeholder="0/0">
-        </div>
-        <div>
-          <label>Level 2</label>
-          <input id="spell2" placeholder="0/0">
-        </div>
-        <div>
-          <label>Level 3</label>
-          <input id="spell3" placeholder="0/0">
-        </div>
-        <div>
-          <label>Level 4</label>
-          <input id="spell4" placeholder="0/0">
-        </div>
-        <div>
-          <label>Level 5</label>
-          <input id="spell5" placeholder="0/0">
+    <div class="card non-combat" data-section="abilities">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>Ability Scores</h2>
+        <button class="collapse-btn">Collapse</button>
+      </div>
+      <div class="section-content">
+        <div class="grid">
+          <div class="stat-box">
+            <label>Strength</label>
+            <input id="str" type="number" value="10">
+            <div class="modifier" id="strMod">+0</div>
+          </div>
+          <div class="stat-box">
+            <label>Dexterity</label>
+            <input id="dex" type="number" value="10">
+            <div class="modifier" id="dexMod">+0</div>
+          </div>
+          <div class="stat-box">
+            <label>Constitution</label>
+            <input id="con" type="number" value="10">
+            <div class="modifier" id="conMod">+0</div>
+          </div>
+          <div class="stat-box">
+            <label>Intelligence</label>
+            <input id="int" type="number" value="10">
+            <div class="modifier" id="intMod">+0</div>
+          </div>
+          <div class="stat-box">
+            <label>Wisdom</label>
+            <input id="wis" type="number" value="10">
+            <div class="modifier" id="wisMod">+0</div>
+          </div>
+          <div class="stat-box">
+            <label>Charisma</label>
+            <input id="cha" type="number" value="10">
+            <div class="modifier" id="chaMod">+0</div>
+          </div>
         </div>
       </div>
-
-      <label>Spells</label>
-      <textarea id="spells" placeholder="Cantrips and prepared spells"></textarea>
     </div>
 
-    <div class="card">
-      <h2>Inventory & Notes</h2>
-      <label>Inventory</label>
-      <textarea id="inventory" placeholder="Gold, weapons, armor, items"></textarea>
-
-      <label>Notes</label>
-      <textarea id="notes" placeholder="Story notes, quests, NPCs, etc."></textarea>
+    <div class="card non-combat" data-section="saves">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>Saving Throws</h2>
+        <button class="collapse-btn">Collapse</button>
+      </div>
+      <div class="section-content">
+        <p class="hint">Check the box if your character is proficient.</p>
+        <div class="calc-list" id="savingThrowsList"></div>
+      </div>
     </div>
 
-    <div class="card">
-      <h2>Dice Roller</h2>
-      <button onclick="rollDice(4)">Roll d4</button>
-      <button onclick="rollDice(6)">Roll d6</button>
-      <button onclick="rollDice(8)">Roll d8</button>
-      <button onclick="rollDice(10)">Roll d10</button>
-      <button onclick="rollDice(12)">Roll d12</button>
-      <button onclick="rollDice(20)">Roll d20</button>
-      <h3 id="diceResult">Result: -</h3>
+    <div class="card non-combat" data-section="skills">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>Skills</h2>
+        <button class="collapse-btn">Collapse</button>
+      </div>
+      <div class="section-content">
+        <p class="hint">P = proficient. E = expertise, which doubles proficiency.</p>
+        <div class="calc-list" id="skillsList"></div>
+      </div>
+    </div>
+
+    <div class="card non-combat" data-section="passives">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>Passive Scores</h2>
+        <button class="collapse-btn">Collapse</button>
+      </div>
+      <div class="section-content">
+        <div class="passive-grid">
+          <div class="passive-box">
+            <div>Passive Perception</div>
+            <div class="passive-value" id="passivePerception">10</div>
+          </div>
+          <div class="passive-box">
+            <div>Passive Insight</div>
+            <div class="passive-value" id="passiveInsight">10</div>
+          </div>
+          <div class="passive-box">
+            <div>Passive Investigation</div>
+            <div class="passive-value" id="passiveInvestigation">10</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-section="attacks">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>Attack Builder</h2>
+        <button class="collapse-btn">Collapse</button>
+      </div>
+      <div class="section-content">
+        <p class="hint">Add up to 3 attacks. It auto-calculates hit bonus and damage modifier.</p>
+
+        <div id="attackBuilder"></div>
+      </div>
+    </div>
+
+    <div class="card" data-section="conditions">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>Condition Tracker</h2>
+        <button class="collapse-btn">Collapse</button>
+      </div>
+      <div class="section-content">
+        <div class="condition-grid" id="conditionGrid"></div>
+      </div>
+    </div>
+
+    <div class="card non-combat" data-section="features">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>Features & Traits</h2>
+        <button class="collapse-btn">Collapse</button>
+      </div>
+      <div class="section-content">
+        <textarea id="features" placeholder="Class features, racial traits, feats, etc."></textarea>
+      </div>
+    </div>
+
+    <div class="card non-combat" data-section="spells">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>Spell Slots</h2>
+        <button class="collapse-btn">Collapse</button>
+      </div>
+      <div class="section-content">
+        <p class="hint">Set the max slots, then tap bubbles to mark used slots.</p>
+        <div id="spellSlotSection"></div>
+
+        <label>Spells</label>
+        <textarea id="spells" placeholder="Cantrips and prepared spells"></textarea>
+      </div>
+    </div>
+
+    <div class="card non-combat" data-section="inventory">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>Inventory & Notes</h2>
+        <button class="collapse-btn">Collapse</button>
+      </div>
+      <div class="section-content">
+        <label>Inventory</label>
+        <textarea id="inventory" placeholder="Gold, weapons, armor, items"></textarea>
+
+        <label>Notes</label>
+        <textarea id="notes" placeholder="Story notes, quests, NPCs, etc."></textarea>
+      </div>
+    </div>
+
+    <div class="card" data-section="dice">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>Dice Roller</h2>
+        <button class="collapse-btn">Collapse</button>
+      </div>
+      <div class="section-content">
+        <button onclick="rollDice(4)">Roll d4</button>
+        <button onclick="rollDice(6)">Roll d6</button>
+        <button onclick="rollDice(8)">Roll d8</button>
+        <button onclick="rollDice(10)">Roll d10</button>
+        <button onclick="rollDice(12)">Roll d12</button>
+        <button onclick="rollDice(20)">Roll d20</button>
+        <h3 id="diceResult">Result: -</h3>
+      </div>
     </div>
 
     <div class="card">
@@ -398,14 +702,15 @@
   </div>
 
   <script>
+    const abilities = ["str", "dex", "con", "int", "wis", "cha"];
+
     const basicFields = [
       "name", "player", "race", "class", "level", "background",
-      "ac", "initiative", "speed", "prof",
+      "ac", "initiativeMisc", "speed", "prof",
       "currentHp", "maxHp", "tempHp",
       "str", "dex", "con", "int", "wis", "cha",
-      "weapons", "features",
-      "spell1", "spell2", "spell3", "spell4", "spell5",
-      "spells", "inventory", "notes",
+      "features", "spells", "inventory", "notes",
+      "combatMode",
       "ds1", "ds2", "ds3", "df1", "df2", "df3"
     ];
 
@@ -439,12 +744,15 @@
       { id: "skill_survival", name: "Survival", ability: "wis" }
     ];
 
-    const allProficiencyIds = [
-      ...savingThrows.map(item => item.id),
-      ...skills.map(item => item.id)
+    const conditions = [
+      "Blinded", "Charmed", "Deafened", "Frightened", "Grappled",
+      "Incapacitated", "Invisible", "Paralyzed", "Petrified", "Poisoned",
+      "Prone", "Restrained", "Stunned", "Unconscious", "Exhaustion",
+      "Concentration"
     ];
 
-    const fields = [...basicFields, ...allProficiencyIds];
+    const spellLevels = [1,2,3,4,5,6,7,8,9];
+    const attackCount = 3;
 
     function formatBonus(num) {
       return num >= 0 ? "+" + num : String(num);
@@ -458,18 +766,12 @@
       return Math.floor((score - 10) / 2);
     }
 
-    function getProfBonus() {
-      return Number(document.getElementById("prof").value) || 0;
+    function getAbilityMod(ability) {
+      return getModifierNumber(getAbilityScore(ability));
     }
 
-    function updateModifiers() {
-      ["str", "dex", "con", "int", "wis", "cha"].forEach(ability => {
-        const score = getAbilityScore(ability);
-        const mod = getModifierNumber(score);
-        document.getElementById(ability + "Mod").textContent = formatBonus(mod);
-      });
-
-      updateCalculatedLists();
+    function getProfBonus() {
+      return Number(document.getElementById("prof").value) || 0;
     }
 
     function createCalculatedRows() {
@@ -477,25 +779,21 @@
       const skillsContainer = document.getElementById("skillsList");
 
       savingThrows.forEach(item => {
-        savesContainer.appendChild(createRow(item));
+        savesContainer.appendChild(createSaveRow(item));
       });
 
       skills.forEach(item => {
-        skillsContainer.appendChild(createRow(item));
+        skillsContainer.appendChild(createSkillRow(item));
       });
     }
 
-    function createRow(item) {
+    function createSaveRow(item) {
       const row = document.createElement("div");
-      row.className = "calc-row";
+      row.className = "calc-row save-row";
 
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.id = item.id;
-      checkbox.addEventListener("change", () => {
-        updateCalculatedLists();
-        saveData();
-      });
+      const prof = document.createElement("input");
+      prof.type = "checkbox";
+      prof.id = item.id;
 
       const name = document.createElement("div");
       name.className = "calc-name";
@@ -506,61 +804,279 @@
       bonus.id = item.id + "_bonus";
       bonus.textContent = "+0";
 
-      row.appendChild(checkbox);
+      row.appendChild(prof);
       row.appendChild(name);
       row.appendChild(bonus);
 
       return row;
     }
 
+    function createSkillRow(item) {
+      const row = document.createElement("div");
+      row.className = "calc-row";
+
+      const prof = document.createElement("input");
+      prof.type = "checkbox";
+      prof.id = item.id + "_prof";
+      prof.title = "Proficient";
+
+      const expertise = document.createElement("input");
+      expertise.type = "checkbox";
+      expertise.id = item.id + "_expertise";
+      expertise.title = "Expertise";
+
+      const name = document.createElement("div");
+      name.className = "calc-name";
+      name.textContent = item.name + " (" + item.ability.toUpperCase() + ")";
+
+      const bonus = document.createElement("div");
+      bonus.className = "calc-bonus";
+      bonus.id = item.id + "_bonus";
+      bonus.textContent = "+0";
+
+      row.appendChild(prof);
+      row.appendChild(expertise);
+      row.appendChild(name);
+      row.appendChild(bonus);
+
+      return row;
+    }
+
+    function createConditionButtons() {
+      const container = document.getElementById("conditionGrid");
+
+      conditions.forEach(condition => {
+        const btn = document.createElement("div");
+        btn.className = "condition";
+        btn.id = "condition_" + condition.replace(/\s+/g, "_").toLowerCase();
+        btn.textContent = condition;
+        btn.onclick = () => {
+          btn.classList.toggle("active");
+          saveData();
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    function createAttackBuilder() {
+      const container = document.getElementById("attackBuilder");
+
+      for (let i = 1; i <= attackCount; i++) {
+        const box = document.createElement("div");
+        box.className = "attack-card";
+        box.innerHTML = `
+          <h3>Attack ${i}</h3>
+          <div class="grid-wide">
+            <div>
+              <label>Attack Name</label>
+              <input id="attack${i}_name" placeholder="Ex: Longsword">
+            </div>
+            <div>
+              <label>Ability</label>
+              <select id="attack${i}_ability">
+                <option value="str">Strength</option>
+                <option value="dex">Dexterity</option>
+                <option value="con">Constitution</option>
+                <option value="int">Intelligence</option>
+                <option value="wis">Wisdom</option>
+                <option value="cha">Charisma</option>
+              </select>
+            </div>
+            <div>
+              <label>Proficient?</label>
+              <select id="attack${i}_prof">
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+            <div>
+              <label>Magic / Misc Hit Bonus</label>
+              <input id="attack${i}_hitMisc" type="number" value="0">
+            </div>
+            <div>
+              <label>Damage Dice</label>
+              <input id="attack${i}_dice" placeholder="Ex: 1d8">
+            </div>
+            <div>
+              <label>Damage Type</label>
+              <input id="attack${i}_type" placeholder="Ex: slashing">
+            </div>
+            <div>
+              <label>Damage Misc Bonus</label>
+              <input id="attack${i}_dmgMisc" type="number" value="0">
+            </div>
+          </div>
+          <div class="attack-output" id="attack${i}_output">Attack output will appear here.</div>
+        `;
+        container.appendChild(box);
+      }
+    }
+
+    function createSpellSlots() {
+      const container = document.getElementById("spellSlotSection");
+
+      spellLevels.forEach(level => {
+        const row = document.createElement("div");
+        row.className = "spell-slot-row";
+        row.innerHTML = `
+          <div class="grid">
+            <div>
+              <label>Level ${level} Max Slots</label>
+              <input id="spell${level}_max" type="number" min="0" max="9" value="0">
+            </div>
+            <div>
+              <label>Used / Total</label>
+              <input id="spell${level}_summary" readonly value="0/0">
+            </div>
+          </div>
+          <div class="slot-bubbles" id="spell${level}_bubbles"></div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function updateModifiers() {
+      abilities.forEach(ability => {
+        const mod = getAbilityMod(ability);
+        document.getElementById(ability + "Mod").textContent = formatBonus(mod);
+      });
+
+      updateInitiative();
+      updateCalculatedLists();
+      updatePassives();
+      updateAttacks();
+      updateSpellSlots();
+      updateStickyBar();
+    }
+
+    function updateInitiative() {
+      const dexMod = getAbilityMod("dex");
+      const misc = Number(document.getElementById("initiativeMisc").value) || 0;
+      document.getElementById("initiative").value = formatBonus(dexMod + misc);
+    }
+
+    function getSkillTotal(skillId) {
+      const skill = skills.find(s => s.id === skillId);
+      if (!skill) return 0;
+
+      const base = getAbilityMod(skill.ability);
+      const prof = document.getElementById(skill.id + "_prof")?.checked || false;
+      const expertise = document.getElementById(skill.id + "_expertise")?.checked || false;
+      const profBonus = getProfBonus();
+
+      if (expertise) return base + (profBonus * 2);
+      if (prof) return base + profBonus;
+      return base;
+    }
+
     function updateCalculatedLists() {
-      const prof = getProfBonus();
+      const profBonus = getProfBonus();
 
-      [...savingThrows, ...skills].forEach(item => {
-        const abilityMod = getModifierNumber(getAbilityScore(item.ability));
-        const isProficient = document.getElementById(item.id)?.checked || false;
-        const total = abilityMod + (isProficient ? prof : 0);
+      savingThrows.forEach(item => {
+        const base = getAbilityMod(item.ability);
+        const proficient = document.getElementById(item.id)?.checked || false;
+        const total = base + (proficient ? profBonus : 0);
+        document.getElementById(item.id + "_bonus").textContent = formatBonus(total);
+      });
 
-        const bonusElement = document.getElementById(item.id + "_bonus");
-        if (bonusElement) {
-          bonusElement.textContent = formatBonus(total);
+      skills.forEach(item => {
+        const prof = document.getElementById(item.id + "_prof");
+        const expertise = document.getElementById(item.id + "_expertise");
+
+        if (expertise && expertise.checked && prof) {
+          prof.checked = true;
         }
+
+        document.getElementById(item.id + "_bonus").textContent = formatBonus(getSkillTotal(item.id));
       });
     }
 
-    function saveData() {
-      const data = {};
-
-      fields.forEach(id => {
-        const element = document.getElementById(id);
-        if (!element) return;
-
-        if (element.type === "checkbox") {
-          data[id] = element.checked;
-        } else {
-          data[id] = element.value;
-        }
-      });
-
-      localStorage.setItem("dndCharacterSheetV2", JSON.stringify(data));
+    function updatePassives() {
+      document.getElementById("passivePerception").textContent = 10 + getSkillTotal("skill_perception");
+      document.getElementById("passiveInsight").textContent = 10 + getSkillTotal("skill_insight");
+      document.getElementById("passiveInvestigation").textContent = 10 + getSkillTotal("skill_investigation");
     }
 
-    function loadData() {
-      const saved = localStorage.getItem("dndCharacterSheetV2");
-      if (!saved) return;
+    function updateAttacks() {
+      for (let i = 1; i <= attackCount; i++) {
+        const name = document.getElementById(`attack${i}_name`)?.value || `Attack ${i}`;
+        const ability = document.getElementById(`attack${i}_ability`)?.value || "str";
+        const isProf = document.getElementById(`attack${i}_prof`)?.value === "yes";
+        const hitMisc = Number(document.getElementById(`attack${i}_hitMisc`)?.value) || 0;
+        const dice = document.getElementById(`attack${i}_dice`)?.value || "damage dice";
+        const type = document.getElementById(`attack${i}_type`)?.value || "damage";
+        const dmgMisc = Number(document.getElementById(`attack${i}_dmgMisc`)?.value) || 0;
 
-      const data = JSON.parse(saved);
+        const abilityMod = getAbilityMod(ability);
+        const hitBonus = abilityMod + (isProf ? getProfBonus() : 0) + hitMisc;
+        const dmgBonus = abilityMod + dmgMisc;
+        const dmgText = `${dice}${dmgBonus === 0 ? "" : formatBonus(dmgBonus)} ${type}`;
 
-      fields.forEach(id => {
-        const element = document.getElementById(id);
-        if (!element || data[id] === undefined) return;
-
-        if (element.type === "checkbox") {
-          element.checked = data[id];
-        } else {
-          element.value = data[id];
+        const output = document.getElementById(`attack${i}_output`);
+        if (output) {
+          output.textContent = `${name}: ${formatBonus(hitBonus)} to hit | ${dmgText}`;
         }
+      }
+    }
+
+    function updateSpellSlots() {
+      spellLevels.forEach(level => {
+        const maxInput = document.getElementById(`spell${level}_max`);
+        const max = Math.max(0, Math.min(9, Number(maxInput?.value) || 0));
+        if (maxInput && Number(maxInput.value) !== max) maxInput.value = max;
+
+        const bubbleContainer = document.getElementById(`spell${level}_bubbles`);
+        const currentUsed = getUsedSpellSlots(level);
+        bubbleContainer.innerHTML = "";
+
+        for (let i = 1; i <= max; i++) {
+          const bubble = document.createElement("div");
+          bubble.className = "slot-bubble";
+          bubble.id = `spell${level}_slot${i}`;
+          if (i <= currentUsed) bubble.classList.add("used");
+
+          bubble.onclick = () => {
+            bubble.classList.toggle("used");
+            updateSpellSummary(level);
+            saveData();
+          };
+
+          bubbleContainer.appendChild(bubble);
+        }
+
+        updateSpellSummary(level);
       });
+    }
+
+    function getUsedSpellSlots(level) {
+      let used = 0;
+      document.querySelectorAll(`#spell${level}_bubbles .slot-bubble.used`).forEach(() => used++);
+      return used;
+    }
+
+    function updateSpellSummary(level) {
+      const max = Number(document.getElementById(`spell${level}_max`)?.value) || 0;
+      const used = getUsedSpellSlots(level);
+      const summary = document.getElementById(`spell${level}_summary`);
+      if (summary) summary.value = `${used}/${max}`;
+    }
+
+    function updateStickyBar() {
+      const name = document.getElementById("name").value || "Unnamed Character";
+      const hp = Number(document.getElementById("currentHp").value) || 0;
+      const maxHp = Number(document.getElementById("maxHp").value) || 0;
+      const ac = document.getElementById("ac").value || "10";
+      const init = document.getElementById("initiative").value || "+0";
+      const pp = document.getElementById("passivePerception").textContent || "10";
+
+      document.getElementById("stickyName").textContent = name;
+      document.getElementById("stickyHp").textContent = `HP ${hp}/${maxHp}`;
+      document.getElementById("stickyAc").textContent = `AC ${ac}`;
+      document.getElementById("stickyInit").textContent = `Init ${init}`;
+      document.getElementById("stickyPassive").textContent = `PP ${pp}`;
+
+      const hpPill = document.getElementById("stickyHp");
+      hpPill.classList.toggle("low-hp", maxHp > 0 && hp <= maxHp / 3);
     }
 
     function changeHp(amount) {
@@ -571,17 +1087,40 @@
       if (newHp > maxHp) newHp = maxHp;
       currentHp.value = newHp;
 
+      updateModifiers();
       saveData();
     }
 
-    function fullHeal() {
-      document.getElementById("currentHp").value = document.getElementById("maxHp").value;
-      document.getElementById("tempHp").value = 0;
-
+    function clearDeathSaves() {
       ["ds1", "ds2", "ds3", "df1", "df2", "df3"].forEach(id => {
         document.getElementById(id).checked = false;
       });
+    }
 
+    function shortRest() {
+      clearDeathSaves();
+      alert("Short rest applied: death saves cleared. HP and spell slots were not changed.");
+      saveData();
+    }
+
+    function longRest() {
+      document.getElementById("currentHp").value = document.getElementById("maxHp").value;
+      document.getElementById("tempHp").value = 0;
+      clearDeathSaves();
+
+      spellLevels.forEach(level => {
+        document.querySelectorAll(`#spell${level}_bubbles .slot-bubble`).forEach(bubble => {
+          bubble.classList.remove("used");
+        });
+        updateSpellSummary(level);
+      });
+
+      conditions.forEach(condition => {
+        const id = "condition_" + condition.replace(/\s+/g, "_").toLowerCase();
+        document.getElementById(id)?.classList.remove("active");
+      });
+
+      updateModifiers();
       saveData();
     }
 
@@ -590,28 +1129,157 @@
       document.getElementById("diceResult").textContent = "Result: " + result + " on a d" + sides;
     }
 
+    function toggleSection(header) {
+      const card = header.closest(".card");
+      card.classList.toggle("collapsed");
+      const btn = card.querySelector(".collapse-btn");
+      btn.textContent = card.classList.contains("collapsed") ? "Expand" : "Collapse";
+      saveCollapsedSections();
+    }
+
+    function saveCollapsedSections() {
+      const collapsed = [];
+      document.querySelectorAll(".card[data-section]").forEach(card => {
+        if (card.classList.contains("collapsed")) {
+          collapsed.push(card.dataset.section);
+        }
+      });
+      localStorage.setItem("dndSheetV3Collapsed", JSON.stringify(collapsed));
+    }
+
+    function loadCollapsedSections() {
+      const saved = localStorage.getItem("dndSheetV3Collapsed");
+      if (!saved) return;
+
+      const collapsed = JSON.parse(saved);
+
+      document.querySelectorAll(".card[data-section]").forEach(card => {
+        if (collapsed.includes(card.dataset.section)) {
+          card.classList.add("collapsed");
+          const btn = card.querySelector(".collapse-btn");
+          if (btn) btn.textContent = "Expand";
+        }
+      });
+    }
+
     function resetSheet() {
       const confirmReset = confirm("Are you sure you want to reset this character sheet?");
       if (!confirmReset) return;
 
-      localStorage.removeItem("dndCharacterSheetV2");
+      localStorage.removeItem("dndCharacterSheetV3");
+      localStorage.removeItem("dndSheetV3Collapsed");
       location.reload();
     }
 
-    createCalculatedRows();
-    loadData();
-    updateModifiers();
+    function getAllFieldIds() {
+      const saveIds = savingThrows.map(item => item.id);
+      const skillIds = skills.flatMap(item => [item.id + "_prof", item.id + "_expertise"]);
+      const conditionIds = conditions.map(condition => "condition_" + condition.replace(/\s+/g, "_").toLowerCase());
+      const attackIds = [];
 
-    document.querySelectorAll("input, textarea").forEach(element => {
-      element.addEventListener("input", () => {
-        updateModifiers();
+      for (let i = 1; i <= attackCount; i++) {
+        attackIds.push(
+          `attack${i}_name`,
+          `attack${i}_ability`,
+          `attack${i}_prof`,
+          `attack${i}_hitMisc`,
+          `attack${i}_dice`,
+          `attack${i}_type`,
+          `attack${i}_dmgMisc`
+        );
+      }
+
+      const spellIds = [];
+      spellLevels.forEach(level => {
+        spellIds.push(`spell${level}_max`);
+      });
+
+      return [...basicFields, ...saveIds, ...skillIds, ...conditionIds, ...attackIds, ...spellIds];
+    }
+
+    function saveData() {
+      const data = {};
+      const fields = getAllFieldIds();
+
+      fields.forEach(id => {
+        const element = document.getElementById(id);
+        if (!element) return;
+
+        if (element.classList.contains("condition")) {
+          data[id] = element.classList.contains("active");
+        } else if (element.type === "checkbox") {
+          data[id] = element.checked;
+        } else {
+          data[id] = element.value;
+        }
+      });
+
+      spellLevels.forEach(level => {
+        data[`spell${level}_used`] = getUsedSpellSlots(level);
+      });
+
+      localStorage.setItem("dndCharacterSheetV3", JSON.stringify(data));
+      updateStickyBar();
+    }
+
+    function loadData() {
+      const saved = localStorage.getItem("dndCharacterSheetV3");
+      if (!saved) return;
+
+      const data = JSON.parse(saved);
+      const fields = getAllFieldIds();
+
+      fields.forEach(id => {
+        const element = document.getElementById(id);
+        if (!element || data[id] === undefined) return;
+
+        if (element.classList.contains("condition")) {
+          element.classList.toggle("active", data[id]);
+        } else if (element.type === "checkbox") {
+          element.checked = data[id];
+        } else {
+          element.value = data[id];
+        }
+      });
+
+      updateSpellSlots();
+
+      spellLevels.forEach(level => {
+        const used = Number(data[`spell${level}_used`]) || 0;
+        for (let i = 1; i <= used; i++) {
+          document.getElementById(`spell${level}_slot${i}`)?.classList.add("used");
+        }
+        updateSpellSummary(level);
+      });
+    }
+
+    function setupListeners() {
+      document.querySelectorAll("input, textarea, select").forEach(element => {
+        element.addEventListener("input", () => {
+          updateModifiers();
+          saveData();
+        });
+        element.addEventListener("change", () => {
+          updateModifiers();
+          saveData();
+        });
+      });
+
+      document.getElementById("combatMode").addEventListener("change", () => {
+        document.getElementById("app").classList.toggle("combat-mode", document.getElementById("combatMode").checked);
         saveData();
       });
-      element.addEventListener("change", () => {
-        updateModifiers();
-        saveData();
-      });
-    });
+    }
+
+    createCalculatedRows();
+    createConditionButtons();
+    createAttackBuilder();
+    createSpellSlots();
+    loadData();
+    loadCollapsedSections();
+    setupListeners();
+    updateModifiers();
+    document.getElementById("app").classList.toggle("combat-mode", document.getElementById("combatMode").checked);
   </script>
 </body>
 </html>
