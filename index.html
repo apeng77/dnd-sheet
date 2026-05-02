@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>D&D Character Sheet v6</title>
+  <title>D&D Character Sheet v7</title>
   <style>
     :root {
       --bg: #111827;
@@ -449,6 +449,56 @@
       white-space: pre-wrap;
     }
 
+    .search-results {
+      margin-top: 8px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .search-result {
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      padding: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .search-result:hover {
+      filter: brightness(1.12);
+    }
+
+    .search-hit {
+      outline: 2px solid #60a5fa;
+      outline-offset: 2px;
+    }
+
+    .tiny-pill {
+      display: inline-block;
+      background: #111827;
+      border: 1px solid #4b5563;
+      border-radius: 999px;
+      padding: 3px 7px;
+      margin: 3px 4px 0 0;
+      font-size: 12px;
+      color: #dbeafe;
+    }
+
+    .sticky-spell {
+      display: none;
+    }
+
+    .spellcaster .sticky-spell {
+      display: inline-block;
+    }
+
+    .adv-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
     .dice-pop {
       position: fixed;
       left: 50%;
@@ -508,11 +558,12 @@
       <div class="sticky-pill" id="stickyAc">AC 10</div>
       <div class="sticky-pill" id="stickyInit">Init +0</div>
       <div class="sticky-pill" id="stickyPassive">PP 10</div>
+      <div class="sticky-pill sticky-spell" id="stickySpellStats">Spell +0 / DC 10</div>
     </div>
   </div>
 
   <div class="container" id="app">
-    <h1>D&D Character Sheet v6</h1>
+    <h1>D&D Character Sheet v7</h1>
 
     <div class="combat-toggle">
       <input type="checkbox" id="combatMode">
@@ -522,6 +573,7 @@
 
     <div class="search-box combat-hide">
       <input id="sheetSearch" placeholder="Search sheet... ex: spell, potion, perception, longsword">
+      <div class="search-results" id="searchResults"></div>
     </div>
 
     <div class="card non-combat" data-section="character">
@@ -765,9 +817,9 @@
       </div>
     </div>
 
-    <div class="card" data-section="attacks">
+    <div class="card" data-section="attackBuilder">
       <div class="section-header" onclick="toggleSection(this)">
-        <h2>Attacks</h2>
+        <h2>Attack Builder</h2>
         <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
@@ -775,12 +827,17 @@
           <h3>Add Attack</h3>
           <div class="grid-wide">
             <div>
+              <label>Weapon</label>
+              <select id="newAttackWeapon"></select>
+            </div>
+            <div>
               <label>Attack Name</label>
-              <input id="newAttackName" placeholder="Ex: Longsword">
+              <input id="newAttackName" placeholder="Auto-filled from weapon">
             </div>
             <div>
               <label>Ability</label>
               <select id="newAttackAbility">
+                <option value="auto">Auto / Smart</option>
                 <option value="str">Strength</option>
                 <option value="dex">Dexterity</option>
                 <option value="con">Constitution</option>
@@ -802,18 +859,7 @@
             </div>
             <div>
               <label>Damage Dice</label>
-              <select id="newAttackDice">
-                <option value="1d4">1d4</option>
-                <option value="1d6">1d6</option>
-                <option value="1d8">1d8</option>
-                <option value="1d10">1d10</option>
-                <option value="1d12">1d12</option>
-                <option value="2d4">2d4</option>
-                <option value="2d6">2d6</option>
-                <option value="2d8">2d8</option>
-                <option value="3d6">3d6</option>
-                <option value="custom">Custom</option>
-              </select>
+              <select id="newAttackDice"></select>
             </div>
             <div id="customDiceWrap" style="display:none;">
               <label>Custom Damage Dice</label>
@@ -841,10 +887,26 @@
               <label>Damage Misc Bonus</label>
               <input id="newAttackDmgMisc" type="number" value="0">
             </div>
+            <div>
+              <label>Use Weapon Mastery?</label>
+              <select id="newAttackUseMastery">
+                <option value="yes">Yes, if character has mastery</option>
+                <option value="no">No</option>
+              </select>
+            </div>
           </div>
+          <p class="hint" id="weaponPreview">Choose a weapon to preview its mastery and properties.</p>
           <button onclick="addAttack()" class="success">Add Attack</button>
         </div>
+      </div>
+    </div>
 
+    <div class="card" data-section="attacks">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>Attacks</h2>
+        <span class="collapse-arrow">⌃</span>
+      </div>
+      <div class="section-content">
         <div class="attack-list" id="attackList"></div>
       </div>
     </div>
@@ -877,8 +939,16 @@
       <div class="section-content">
         <p class="hint">Spell slot maxes auto-update from your class and level. Tap bubbles to mark used slots.</p>
         <div id="spellSlotSection"></div>
+      </div>
+    </div>
 
-        <div class="attack-builder-panel combat-hide">
+    <div class="card non-combat" data-section="spellBuilder">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>Spell / Cantrip Builder</h2>
+        <span class="collapse-arrow">⌃</span>
+      </div>
+      <div class="section-content">
+        <div class="attack-builder-panel">
           <h3>Add Spell / Cantrip</h3>
           <div class="grid-wide">
             <div>
@@ -917,6 +987,24 @@
               </select>
             </div>
             <div>
+              <label>Prepared?</label>
+              <select id="newSpellPrepared">
+                <option value="yes">Prepared / Known</option>
+                <option value="no">Not Prepared</option>
+              </select>
+            </div>
+            <div>
+              <label>Concentration?</label>
+              <select id="newSpellConcentration">
+                <option value="no">No</option>
+                <option value="yes">Yes</option>
+              </select>
+            </div>
+            <div>
+              <label>Duration</label>
+              <input id="newSpellDuration" placeholder="Ex: 1 minute">
+            </div>
+            <div>
               <label>Damage Dice</label>
               <select id="newSpellDice">
                 <option value="">None</option>
@@ -953,17 +1041,25 @@
             </div>
           </div>
           <label>Notes</label>
-          <textarea id="newSpellNotes" placeholder="Range, casting time, effect, concentration, etc."></textarea>
+          <textarea id="newSpellNotes" placeholder="Range, casting time, effect, etc."></textarea>
           <button onclick="addSpell()" class="success">Add Spell</button>
         </div>
-
-        <div id="spellCardList" class="combat-hide"></div>
       </div>
     </div>
 
-    <div class="card non-combat" data-section="inventory">
+    <div class="card" data-section="spellCards">
       <div class="section-header" onclick="toggleSection(this)">
-        <h2>Inventory & Notes</h2>
+        <h2>Spell / Cantrip Cards</h2>
+        <span class="collapse-arrow">⌃</span>
+      </div>
+      <div class="section-content">
+        <div id="spellCardList"></div>
+      </div>
+    </div>
+
+    <div class="card non-combat" data-section="inventoryBuilder">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>Inventory Builder</h2>
         <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
@@ -992,10 +1088,25 @@
         <label>Item Notes</label>
         <textarea id="newInventoryNotes" placeholder="Description, value, attunement, etc."></textarea>
         <button onclick="addInventoryItem()" class="success">Add Item</button>
+      </div>
+    </div>
 
+    <div class="card non-combat" data-section="inventory">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>Inventory</h2>
+        <span class="collapse-arrow">⌃</span>
+      </div>
+      <div class="section-content">
         <div id="inventoryList"></div>
+      </div>
+    </div>
 
-        <label>Campaign Notes</label>
+    <div class="card non-combat" data-section="notes">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>Campaign Notes</h2>
+        <span class="collapse-arrow">⌃</span>
+      </div>
+      <div class="section-content">
         <textarea id="notes" placeholder="Story notes, quests, NPCs, etc."></textarea>
       </div>
     </div>
@@ -1006,6 +1117,11 @@
         <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
+        <div class="adv-grid">
+          <label><input type="radio" name="rollMode" value="normal" checked> Normal</label>
+          <label><input type="radio" name="rollMode" value="advantage"> Advantage</label>
+          <label><input type="radio" name="rollMode" value="disadvantage"> Disadvantage</label>
+        </div>
         <button onclick="rollDice(4)">Roll d4</button>
         <button onclick="rollDice(6)">Roll d6</button>
         <button onclick="rollDice(8)">Roll d8</button>
@@ -1084,6 +1200,51 @@
 
     const spellLevels = [1,2,3,4,5,6,7,8,9];
 
+    const weaponData = {
+      "Club": { dice: "1d4", type: "bludgeoning", ability: "str", mastery: "Slow", properties: ["Light"] },
+      "Dagger": { dice: "1d4", type: "piercing", ability: "finesse", mastery: "Nick", properties: ["Finesse", "Light", "Thrown"] },
+      "Greatclub": { dice: "1d8", type: "bludgeoning", ability: "str", mastery: "Push", properties: ["Two-Handed"] },
+      "Handaxe": { dice: "1d6", type: "slashing", ability: "str", mastery: "Vex", properties: ["Light", "Thrown"] },
+      "Javelin": { dice: "1d6", type: "piercing", ability: "str", mastery: "Slow", properties: ["Thrown"] },
+      "Light Hammer": { dice: "1d4", type: "bludgeoning", ability: "str", mastery: "Nick", properties: ["Light", "Thrown"] },
+      "Mace": { dice: "1d6", type: "bludgeoning", ability: "str", mastery: "Sap", properties: [] },
+      "Quarterstaff": { dice: "1d6", type: "bludgeoning", ability: "str", mastery: "Topple", properties: ["Versatile 1d8"] },
+      "Sickle": { dice: "1d4", type: "slashing", ability: "str", mastery: "Nick", properties: ["Light"] },
+      "Spear": { dice: "1d6", type: "piercing", ability: "str", mastery: "Sap", properties: ["Thrown", "Versatile 1d8"] },
+      "Light Crossbow": { dice: "1d8", type: "piercing", ability: "dex", mastery: "Slow", properties: ["Ammunition", "Loading", "Two-Handed"] },
+      "Dart": { dice: "1d4", type: "piercing", ability: "dex", mastery: "Vex", properties: ["Finesse", "Thrown"] },
+      "Shortbow": { dice: "1d6", type: "piercing", ability: "dex", mastery: "Vex", properties: ["Ammunition", "Two-Handed"] },
+      "Sling": { dice: "1d4", type: "bludgeoning", ability: "dex", mastery: "Slow", properties: ["Ammunition"] },
+      "Battleaxe": { dice: "1d8", type: "slashing", ability: "str", mastery: "Topple", properties: ["Versatile 1d10"] },
+      "Flail": { dice: "1d8", type: "bludgeoning", ability: "str", mastery: "Sap", properties: [] },
+      "Glaive": { dice: "1d10", type: "slashing", ability: "str", mastery: "Graze", properties: ["Heavy", "Reach", "Two-Handed"] },
+      "Greataxe": { dice: "1d12", type: "slashing", ability: "str", mastery: "Cleave", properties: ["Heavy", "Two-Handed"] },
+      "Greatsword": { dice: "2d6", type: "slashing", ability: "str", mastery: "Graze", properties: ["Heavy", "Two-Handed"] },
+      "Halberd": { dice: "1d10", type: "slashing", ability: "str", mastery: "Cleave", properties: ["Heavy", "Reach", "Two-Handed"] },
+      "Lance": { dice: "1d10", type: "piercing", ability: "str", mastery: "Topple", properties: ["Heavy", "Reach"] },
+      "Longsword": { dice: "1d8", type: "slashing", ability: "str", mastery: "Sap", properties: ["Versatile 1d10"] },
+      "Maul": { dice: "2d6", type: "bludgeoning", ability: "str", mastery: "Topple", properties: ["Heavy", "Two-Handed"] },
+      "Morningstar": { dice: "1d8", type: "piercing", ability: "str", mastery: "Sap", properties: [] },
+      "Pike": { dice: "1d10", type: "piercing", ability: "str", mastery: "Push", properties: ["Heavy", "Reach", "Two-Handed"] },
+      "Rapier": { dice: "1d8", type: "piercing", ability: "finesse", mastery: "Vex", properties: ["Finesse"] },
+      "Scimitar": { dice: "1d6", type: "slashing", ability: "finesse", mastery: "Nick", properties: ["Finesse", "Light"] },
+      "Shortsword": { dice: "1d6", type: "piercing", ability: "finesse", mastery: "Vex", properties: ["Finesse", "Light"] },
+      "Trident": { dice: "1d8", type: "piercing", ability: "str", mastery: "Topple", properties: ["Thrown", "Versatile 1d10"] },
+      "War Pick": { dice: "1d8", type: "piercing", ability: "str", mastery: "Sap", properties: [] },
+      "Warhammer": { dice: "1d8", type: "bludgeoning", ability: "str", mastery: "Push", properties: ["Versatile 1d10"] },
+      "Whip": { dice: "1d4", type: "slashing", ability: "finesse", mastery: "Slow", properties: ["Finesse", "Reach"] },
+      "Blowgun": { dice: "1", type: "piercing", ability: "dex", mastery: "Vex", properties: ["Ammunition", "Loading"] },
+      "Hand Crossbow": { dice: "1d6", type: "piercing", ability: "dex", mastery: "Vex", properties: ["Ammunition", "Light", "Loading"] },
+      "Heavy Crossbow": { dice: "1d10", type: "piercing", ability: "dex", mastery: "Push", properties: ["Ammunition", "Heavy", "Loading", "Two-Handed"] },
+      "Longbow": { dice: "1d8", type: "piercing", ability: "dex", mastery: "Slow", properties: ["Ammunition", "Heavy", "Two-Handed"] },
+      "Musket": { dice: "1d12", type: "piercing", ability: "dex", mastery: "Slow", properties: ["Ammunition", "Loading", "Two-Handed"] },
+      "Pistol": { dice: "1d10", type: "piercing", ability: "dex", mastery: "Vex", properties: ["Ammunition", "Loading"] },
+      "Custom": { dice: "1d6", type: "slashing", ability: "str", mastery: "None", properties: [] }
+    };
+
+    const damageDiceOptions = ["1","1d4","1d6","1d8","1d10","1d12","2d4","2d6","2d8","3d6","4d6","custom"];
+
+
     const classPresets = {
       "Artificer": { hitDie: 8, saves: ["save_con", "save_int"], spellAbility: "int", casterType: "artificer" },
       "Barbarian": { hitDie: 12, saves: ["save_str", "save_con"], spellAbility: "cha", casterType: "none" },
@@ -1149,6 +1310,77 @@
 
     function getProfBonus() {
       return Number(document.getElementById("prof").value) || 0;
+    }
+
+    function setupAttackBuilderOptions() {
+      const weaponSelect = document.getElementById("newAttackWeapon");
+      const diceSelect = document.getElementById("newAttackDice");
+      if (!weaponSelect || !diceSelect) return;
+
+      weaponSelect.innerHTML = "";
+      Object.keys(weaponData).forEach(name => {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        weaponSelect.appendChild(option);
+      });
+
+      diceSelect.innerHTML = "";
+      damageDiceOptions.forEach(dice => {
+        const option = document.createElement("option");
+        option.value = dice;
+        option.textContent = dice === "custom" ? "Custom" : dice;
+        diceSelect.appendChild(option);
+      });
+
+      updateWeaponFields();
+    }
+
+    function chooseSmartAttackAbility(weaponAbility) {
+      if (weaponAbility === "dex") return "dex";
+      if (weaponAbility === "str") return "str";
+      if (weaponAbility === "finesse") {
+        return getAbilityMod("dex") >= getAbilityMod("str") ? "dex" : "str";
+      }
+      return "str";
+    }
+
+    function updateWeaponFields() {
+      const weaponName = document.getElementById("newAttackWeapon")?.value || "Longsword";
+      const data = weaponData[weaponName] || weaponData.Custom;
+
+      if (!document.getElementById("newAttackName").value || document.getElementById("newAttackName").dataset.auto === "true") {
+        document.getElementById("newAttackName").value = weaponName === "Custom" ? "" : weaponName;
+        document.getElementById("newAttackName").dataset.auto = "true";
+      }
+
+      document.getElementById("newAttackDice").value = data.dice;
+      document.getElementById("newAttackType").value = data.type;
+      document.getElementById("newAttackAbility").value = "auto";
+
+      const mastery = data.mastery || "None";
+      const props = data.properties?.length ? data.properties.join(", ") : "No extra properties";
+      document.getElementById("weaponPreview").innerHTML =
+        `<span class="tiny-pill">Mastery: ${mastery}</span><span class="tiny-pill">${props}</span>`;
+    }
+
+    function getSpellAbility() {
+      const className = document.getElementById("class").value;
+      return classPresets[className]?.spellAbility || document.getElementById("newSpellAbility")?.value || "cha";
+    }
+
+    function hasSpellcastingClass() {
+      const className = document.getElementById("class").value;
+      const type = classPresets[className]?.casterType || "none";
+      return type !== "none";
+    }
+
+    function getSpellAttackBonus() {
+      return getAbilityMod(getSpellAbility()) + getProfBonus();
+    }
+
+    function getSpellSaveDc() {
+      return 8 + getAbilityMod(getSpellAbility()) + getProfBonus();
     }
 
     function createCalculatedRows() {
@@ -1269,28 +1501,37 @@
     }
 
     function addAttack() {
+      const weaponName = document.getElementById("newAttackWeapon").value;
+      const weapon = weaponData[weaponName] || weaponData.Custom;
       const diceValue = document.getElementById("newAttackDice").value;
       const customDice = document.getElementById("newAttackCustomDice").value.trim();
+      const selectedAbility = document.getElementById("newAttackAbility").value;
+      const finalAbility = selectedAbility === "auto" ? chooseSmartAttackAbility(weapon.ability) : selectedAbility;
 
       const attack = {
         id: Date.now(),
-        name: document.getElementById("newAttackName").value.trim() || "Unnamed Attack",
-        ability: document.getElementById("newAttackAbility").value,
+        weapon: weaponName,
+        name: document.getElementById("newAttackName").value.trim() || weaponName || "Unnamed Attack",
+        ability: finalAbility,
+        smartAbility: selectedAbility === "auto",
         proficient: document.getElementById("newAttackProf").value === "yes",
         hitMisc: Number(document.getElementById("newAttackHitMisc").value) || 0,
         dice: diceValue === "custom" ? (customDice || "1d6") : diceValue,
         type: document.getElementById("newAttackType").value,
-        dmgMisc: Number(document.getElementById("newAttackDmgMisc").value) || 0
+        dmgMisc: Number(document.getElementById("newAttackDmgMisc").value) || 0,
+        mastery: document.getElementById("newAttackUseMastery").value === "yes" ? (weapon.mastery || "None") : "None",
+        properties: weapon.properties || []
       };
 
       attacks.push(attack);
 
       document.getElementById("newAttackName").value = "";
+      document.getElementById("newAttackName").dataset.auto = "true";
       document.getElementById("newAttackHitMisc").value = 0;
       document.getElementById("newAttackDmgMisc").value = 0;
       document.getElementById("newAttackCustomDice").value = "";
-      document.getElementById("newAttackDice").value = "1d8";
       document.getElementById("customDiceWrap").style.display = "none";
+      updateWeaponFields();
 
       renderAttacks();
       saveData();
@@ -1314,7 +1555,10 @@
         ability: document.getElementById("newSpellAbility").value,
         dice: diceValue === "custom" ? (customDice || "") : diceValue,
         type: document.getElementById("newSpellType").value,
-        notes: document.getElementById("newSpellNotes").value.trim()
+        notes: document.getElementById("newSpellNotes").value.trim(),
+        prepared: document.getElementById("newSpellPrepared").value === "yes",
+        concentration: document.getElementById("newSpellConcentration").value === "yes",
+        duration: document.getElementById("newSpellDuration").value.trim()
       };
 
       spells.push(spell);
@@ -1322,6 +1566,9 @@
       document.getElementById("newSpellName").value = "";
       document.getElementById("newSpellCustomDice").value = "";
       document.getElementById("newSpellNotes").value = "";
+      document.getElementById("newSpellDuration").value = "";
+      document.getElementById("newSpellPrepared").value = "yes";
+      document.getElementById("newSpellConcentration").value = "no";
       document.getElementById("newSpellDice").value = "";
       document.getElementById("customSpellDiceWrap").style.display = "none";
 
@@ -1357,6 +1604,9 @@
         if (spell.kind === "Spell Attack") subParts.push(`${formatBonus(spellAttackBonus)} to hit`);
         if (spell.kind === "Save Spell") subParts.push(`Save DC ${saveDc}`);
         if (spell.dice) subParts.push(`${spell.dice} ${spell.type}`);
+        if (spell.prepared === false) subParts.push("Not prepared");
+        if (spell.concentration) subParts.push("Concentration");
+        if (spell.duration) subParts.push(`Duration: ${spell.duration}`);
 
         const div = document.createElement("div");
         div.className = "spell-card";
@@ -1368,14 +1618,50 @@
               <div class="spell-sub">${spell.notes || ""}</div>
             </div>
             <div>
+              ${spell.level !== "Cantrip" ? `<button class="mini-button success" onclick="castSpell(${spell.id})">Cast</button>` : ""}
               ${spell.kind === "Spell Attack" ? `<button class="mini-button purple" onclick="rollSpellAttack(${spell.id})">Roll Hit</button>` : ""}
               ${spell.dice ? `<button class="mini-button purple" onclick="rollSpellDamage(${spell.id})">Roll Dmg</button>` : ""}
+              ${spell.concentration ? `<button class="mini-button warning" onclick="toggleConcentration(${spell.id})">Concentration</button>` : ""}
               <button class="mini-button danger" onclick="deleteSpell(${spell.id})">Delete</button>
             </div>
           </div>
         `;
         container.appendChild(div);
       });
+    }
+
+    function castSpell(id) {
+      const spell = spells.find(s => s.id === id);
+      if (!spell || spell.level === "Cantrip") return;
+
+      const level = Number(spell.level);
+      const max = Number(document.getElementById(`spell${level}_max`)?.value) || 0;
+      const used = getUsedSpellSlots(level);
+
+      if (used >= max) {
+        showDicePop(`No level ${level} spell slots left.`);
+        return;
+      }
+
+      const next = document.querySelector(`#spell${level}_bubbles .slot-bubble:not(.used)`);
+      if (next) next.classList.add("used");
+      updateSpellSummary(level);
+
+      if (spell.concentration) {
+        conditions.forEach(condition => {
+          const id = "condition_" + condition.replace(/\s+/g, "_").toLowerCase();
+          if (condition === "Concentration") document.getElementById(id)?.classList.add("active");
+        });
+      }
+
+      showDicePop(`Cast ${spell.name}: used 1 level ${level} slot.`);
+      saveData();
+    }
+
+    function toggleConcentration(id) {
+      const c = document.getElementById("condition_concentration");
+      if (c) c.classList.toggle("active");
+      saveData();
     }
 
     function rollSpellAttack(id) {
@@ -1462,17 +1748,20 @@
       }
 
       attacks.forEach(attack => {
-        const abilityMod = getAbilityMod(attack.ability);
+        const actualAbility = attack.smartAbility ? chooseSmartAttackAbility(weaponData[attack.weapon]?.ability || attack.ability) : attack.ability;
+        const abilityMod = getAbilityMod(actualAbility);
         const hitBonus = abilityMod + (attack.proficient ? getProfBonus() : 0) + attack.hitMisc;
         const dmgBonus = abilityMod + attack.dmgMisc;
         const dmgText = `${attack.dice}${dmgBonus === 0 ? "" : formatBonus(dmgBonus)} ${attack.type}`;
+        const masteryText = attack.mastery && attack.mastery !== "None" ? ` • Mastery: ${attack.mastery}` : "";
+        const propText = attack.properties?.length ? ` • ${attack.properties.join(", ")}` : "";
 
         const div = document.createElement("div");
         div.className = "saved-attack";
         div.innerHTML = `
           <div>
             <div class="saved-attack-main rollable" onclick="rollAttack(${attack.id})">${attack.name}: ${formatBonus(hitBonus)} to hit</div>
-            <div class="saved-attack-sub">${dmgText} • ${attack.ability.toUpperCase()} ${attack.proficient ? "• Proficient" : ""}</div>
+            <div class="saved-attack-sub">${dmgText} • ${actualAbility.toUpperCase()} ${attack.proficient ? "• Proficient" : ""}${masteryText}${propText}</div>
           </div>
           <div>
             <button class="mini-button purple" onclick="rollAttack(${attack.id})">Roll Hit</button>
@@ -1566,14 +1855,16 @@
     function rollAttack(id) {
       const attack = attacks.find(a => a.id === id);
       if (!attack) return;
-      const bonus = getAbilityMod(attack.ability) + (attack.proficient ? getProfBonus() : 0) + attack.hitMisc;
+      const actualAbility = attack.smartAbility ? chooseSmartAttackAbility(weaponData[attack.weapon]?.ability || attack.ability) : attack.ability;
+      const bonus = getAbilityMod(actualAbility) + (attack.proficient ? getProfBonus() : 0) + attack.hitMisc;
       rollD20(attack.name, bonus);
     }
 
     function rollAttackDamage(id) {
       const attack = attacks.find(a => a.id === id);
       if (!attack) return;
-      const bonus = getAbilityMod(attack.ability) + attack.dmgMisc;
+      const actualAbility = attack.smartAbility ? chooseSmartAttackAbility(weaponData[attack.weapon]?.ability || attack.ability) : attack.ability;
+      const bonus = getAbilityMod(actualAbility) + attack.dmgMisc;
       rollDamage(attack.name, attack.dice, bonus);
     }
 
@@ -1696,6 +1987,8 @@
       document.getElementById("stickyAc").textContent = `AC ${ac}`;
       document.getElementById("stickyInit").textContent = `Init ${init}`;
       document.getElementById("stickyPassive").textContent = `PP ${pp}`;
+      document.getElementById("stickySpellStats").textContent = `Spell ${formatBonus(getSpellAttackBonus())} / DC ${getSpellSaveDc()}`;
+      document.getElementById("app").classList.toggle("spellcaster", hasSpellcastingClass());
 
       const hpPill = document.getElementById("stickyHp");
       hpPill.classList.toggle("low-hp", maxHp > 0 && hp <= maxHp / 3);
@@ -1767,10 +2060,24 @@
       }, 2600);
     }
 
+    function getRollMode() {
+      return document.querySelector('input[name="rollMode"]:checked')?.value || "normal";
+    }
+
     function rollD20(label, bonus) {
-      const roll = rollDie(20);
+      const mode = getRollMode();
+      const r1 = rollDie(20);
+      let roll = r1;
+      let detail = `d20 ${r1}`;
+
+      if (mode === "advantage" || mode === "disadvantage") {
+        const r2 = rollDie(20);
+        roll = mode === "advantage" ? Math.max(r1, r2) : Math.min(r1, r2);
+        detail = `${mode === "advantage" ? "Adv" : "Dis"} [${r1}, ${r2}]`;
+      }
+
       const total = roll + bonus;
-      const text = `${label}: d20 ${roll} ${formatBonus(bonus)} = ${total}`;
+      const text = `${label}: ${detail} ${formatBonus(bonus)} = ${total}`;
       document.getElementById("diceResult").textContent = text;
       showDicePop(text);
     }
@@ -1869,11 +2176,11 @@
           collapsed.push(card.dataset.section);
         }
       });
-      localStorage.setItem("dndSheetV6Collapsed", JSON.stringify(collapsed));
+      localStorage.setItem("dndSheetV7Collapsed", JSON.stringify(collapsed));
     }
 
     function loadCollapsedSections() {
-      const saved = localStorage.getItem("dndSheetV6Collapsed");
+      const saved = localStorage.getItem("dndSheetV7Collapsed");
       if (!saved) return;
 
       const collapsed = JSON.parse(saved);
@@ -1891,8 +2198,8 @@
       const confirmReset = confirm("Are you sure you want to reset this character sheet?");
       if (!confirmReset) return;
 
-      localStorage.removeItem("dndCharacterSheetV6");
-      localStorage.removeItem("dndSheetV6Collapsed");
+      localStorage.removeItem("dndCharacterSheetV7");
+      localStorage.removeItem("dndSheetV7Collapsed");
       location.reload();
     }
 
@@ -1929,12 +2236,12 @@
         data[`spell${level}_used`] = getUsedSpellSlots(level);
       });
 
-      localStorage.setItem("dndCharacterSheetV6", JSON.stringify(data));
+      localStorage.setItem("dndCharacterSheetV7", JSON.stringify(data));
       updateStickyBar();
     }
 
     function loadData() {
-      const saved = localStorage.getItem("dndCharacterSheetV6");
+      const saved = localStorage.getItem("dndCharacterSheetV7");
       if (!saved) return;
 
       const data = JSON.parse(saved);
@@ -1973,6 +2280,10 @@
 
     function applySearchFilter() {
       const query = document.getElementById("sheetSearch").value.toLowerCase().trim();
+      const results = document.getElementById("searchResults");
+      results.innerHTML = "";
+
+      document.querySelectorAll(".search-hit").forEach(el => el.classList.remove("search-hit"));
 
       document.querySelectorAll(".card[data-section]").forEach(card => {
         if (!query) {
@@ -1981,8 +2292,30 @@
         }
 
         const text = card.innerText.toLowerCase();
-        card.style.display = text.includes(query) ? "" : "none";
+        const isMatch = text.includes(query);
+        card.style.display = isMatch ? "" : "none";
+
+        if (isMatch) {
+          const title = card.querySelector("h2")?.textContent || "Section";
+          const result = document.createElement("div");
+          result.className = "search-result";
+          result.textContent = `Jump to ${title}`;
+          result.onclick = () => {
+            card.style.display = "";
+            card.classList.remove("collapsed");
+            const arrow = card.querySelector(".collapse-arrow");
+            if (arrow) arrow.textContent = "⌃";
+            card.classList.add("search-hit");
+            card.scrollIntoView({ behavior: "smooth", block: "start" });
+            setTimeout(() => card.classList.remove("search-hit"), 1800);
+          };
+          results.appendChild(result);
+        }
       });
+
+      if (query && !results.children.length) {
+        results.innerHTML = `<div class="hint">No matches found.</div>`;
+      }
     }
 
     function setupListeners() {
@@ -2007,6 +2340,11 @@
           document.getElementById("newAttackDice").value === "custom" ? "block" : "none";
       });
 
+      document.getElementById("newAttackWeapon").addEventListener("change", updateWeaponFields);
+      document.getElementById("newAttackName").addEventListener("input", () => {
+        document.getElementById("newAttackName").dataset.auto = "false";
+      });
+
       document.getElementById("newSpellDice").addEventListener("change", () => {
         document.getElementById("customSpellDiceWrap").style.display =
           document.getElementById("newSpellDice").value === "custom" ? "block" : "none";
@@ -2026,6 +2364,7 @@
     createCalculatedRows();
     createConditionButtons();
     createSpellSlots();
+    setupAttackBuilderOptions();
     loadData();
     renderSpells();
     renderInventory();
