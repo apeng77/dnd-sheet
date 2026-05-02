@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>D&D Character Sheet v17</title>
+  <title>D&D Character Sheet v18</title>
   <style>
     :root {
       --bg: #111827;
@@ -756,6 +756,24 @@
       display: inline-block;
     }
 
+
+    .inline-edit {
+      display: none;
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 12px;
+      padding: 10px;
+      margin-top: 10px;
+    }
+
+    .inline-edit.active {
+      display: block;
+    }
+
+    .builder-hidden {
+      display: none !important;
+    }
+
     .footer {
       text-align: center;
       color: var(--hint);
@@ -831,7 +849,7 @@
   </div>
 
   <div class="container" id="app">
-    <h1>D&D Character Sheet v17</h1>
+    <h1>D&D Character Sheet v18</h1>
 
     <div class="combat-toggle">
       <input type="checkbox" id="combatMode">
@@ -1915,6 +1933,7 @@
       updateWeaponFields();
 
       renderAttacks();
+      hideBuilder("attackBuilder");
       saveData();
     }
 
@@ -1925,27 +1944,32 @@
     }
 
     function editAttack(id) {
+      const panel = document.getElementById(`edit_attack_${id}`);
+      if (panel) panel.classList.toggle("active");
+    }
+
+    function saveAttackEdit(id) {
       const attack = attacks.find(a => a.id === id);
       if (!attack) return;
 
-      jumpToSection("attackBuilder");
-      const builder = document.getElementById("attackBuilder_builder");
-      if (builder) builder.classList.remove("builder-hidden");
+      const diceValue = document.getElementById(`edit_attack_dice_${id}`).value;
+      const customDice = document.getElementById(`edit_attack_customDice_${id}`).value.trim();
+      const abilityValue = document.getElementById(`edit_attack_ability_${id}`).value;
 
-      document.getElementById("newAttackWeapon").value = attack.weapon || "Custom";
-      document.getElementById("newAttackName").value = attack.name || "";
-      document.getElementById("newAttackName").dataset.auto = "false";
-      document.getElementById("newAttackAbility").value = attack.smartAbility ? "auto" : (attack.ability || "str");
-      document.getElementById("newAttackProf").value = attack.proficient ? "yes" : "no";
-      document.getElementById("newAttackHitMisc").value = attack.hitMisc || 0;
-      document.getElementById("newAttackDice").value = damageDiceOptions.includes(attack.dice) ? attack.dice : "custom";
-      document.getElementById("newAttackCustomDice").value = damageDiceOptions.includes(attack.dice) ? "" : attack.dice;
-      document.getElementById("customDiceWrap").style.display = document.getElementById("newAttackDice").value === "custom" ? "block" : "none";
-      document.getElementById("newAttackType").value = attack.type || "slashing";
-      document.getElementById("newAttackDmgMisc").value = attack.dmgMisc || 0;
-      document.getElementById("newAttackUseMastery").value = attack.mastery && attack.mastery !== "None" ? "yes" : "no";
+      attack.weapon = document.getElementById(`edit_attack_weapon_${id}`).value;
+      attack.name = document.getElementById(`edit_attack_name_${id}`).value.trim() || "Unnamed Attack";
+      attack.ability = abilityValue;
+      attack.smartAbility = abilityValue === "auto";
+      attack.proficient = document.getElementById(`edit_attack_prof_${id}`).value === "yes";
+      attack.hitMisc = Number(document.getElementById(`edit_attack_hitMisc_${id}`).value) || 0;
+      attack.dice = diceValue === "custom" ? (customDice || "1d6") : diceValue;
+      attack.type = document.getElementById(`edit_attack_type_${id}`).value;
+      attack.dmgMisc = Number(document.getElementById(`edit_attack_dmgMisc_${id}`).value) || 0;
+      attack.mastery = document.getElementById(`edit_attack_mastery_${id}`).value;
+      attack.properties = weaponData[attack.weapon]?.properties || [];
 
-      deleteAttack(id);
+      renderAttacks();
+      saveData();
     }
 
     function addSpell() {
@@ -1978,6 +2002,7 @@
       document.getElementById("customSpellDiceWrap").style.display = "none";
 
       renderSpells();
+      hideBuilder("spellBuilder");
       saveData();
     }
 
@@ -1988,27 +2013,30 @@
     }
 
     function editSpell(id) {
+      const panel = document.getElementById(`edit_spell_${id}`);
+      if (panel) panel.classList.toggle("active");
+    }
+
+    function saveSpellEdit(id) {
       const spell = spells.find(s => s.id === id);
       if (!spell) return;
 
-      jumpToSection("spellBuilder");
-      const builder = document.getElementById("spellBuilder_builder");
-      if (builder) builder.classList.remove("builder-hidden");
+      const diceValue = document.getElementById(`edit_spell_dice_${id}`).value;
+      const customDice = document.getElementById(`edit_spell_customDice_${id}`).value.trim();
 
-      document.getElementById("newSpellName").value = spell.name || "";
-      document.getElementById("newSpellLevel").value = spell.level || "Cantrip";
-      document.getElementById("newSpellKind").value = spell.kind || "Utility";
-      document.getElementById("newSpellAbility").value = spell.ability || "cha";
-      document.getElementById("newSpellPrepared").value = spell.prepared === false ? "no" : "yes";
-      document.getElementById("newSpellConcentration").value = spell.concentration ? "yes" : "no";
-      document.getElementById("newSpellDuration").value = spell.duration || "";
-      document.getElementById("newSpellDice").value = ["", "1d4", "1d6", "1d8", "1d10", "1d12", "2d6", "3d6", "4d6"].includes(spell.dice) ? spell.dice : "custom";
-      document.getElementById("newSpellCustomDice").value = ["", "1d4", "1d6", "1d8", "1d10", "1d12", "2d6", "3d6", "4d6"].includes(spell.dice) ? "" : spell.dice;
-      document.getElementById("customSpellDiceWrap").style.display = document.getElementById("newSpellDice").value === "custom" ? "block" : "none";
-      document.getElementById("newSpellType").value = spell.type || "";
-      document.getElementById("newSpellNotes").value = spell.notes || "";
+      spell.name = document.getElementById(`edit_spell_name_${id}`).value.trim() || "Unnamed Spell";
+      spell.level = document.getElementById(`edit_spell_level_${id}`).value;
+      spell.kind = document.getElementById(`edit_spell_kind_${id}`).value;
+      spell.ability = document.getElementById(`edit_spell_ability_${id}`).value;
+      spell.prepared = document.getElementById(`edit_spell_prepared_${id}`).value === "yes";
+      spell.concentration = document.getElementById(`edit_spell_concentration_${id}`).value === "yes";
+      spell.duration = document.getElementById(`edit_spell_duration_${id}`).value.trim();
+      spell.dice = diceValue === "custom" ? (customDice || "") : diceValue;
+      spell.type = document.getElementById(`edit_spell_type_${id}`).value;
+      spell.notes = document.getElementById(`edit_spell_notes_${id}`).value.trim();
 
-      deleteSpell(id);
+      renderSpells();
+      saveData();
     }
 
     function renderSpells() {
@@ -2054,6 +2082,23 @@
               <button class="mini-button ghost" onclick="editSpell(${spell.id})">Edit</button>
               <button class="mini-button danger" onclick="deleteSpell(${spell.id})">Delete</button>
             </div>
+          </div>
+          <div class="inline-edit" id="edit_spell_${spell.id}">
+            <div class="grid-wide">
+              <div><label>Name</label><input id="edit_spell_name_${spell.id}" value="${spell.name || ""}"></div>
+              <div><label>Level</label><select id="edit_spell_level_${spell.id}">${spellLevelOptions(spell.level || "Cantrip")}</select></div>
+              <div><label>Kind</label><select id="edit_spell_kind_${spell.id}">${optionList(["Spell Attack","Save Spell","Utility"], spell.kind || "Utility")}</select></div>
+              <div><label>Ability</label><select id="edit_spell_ability_${spell.id}">${optionList(["int","wis","cha"], spell.ability || "cha")}</select></div>
+              <div><label>Prepared?</label><select id="edit_spell_prepared_${spell.id}">${yesNoOptions(spell.prepared !== false)}</select></div>
+              <div><label>Concentration?</label><select id="edit_spell_concentration_${spell.id}">${yesNoOptions(!!spell.concentration)}</select></div>
+              <div><label>Duration</label><input id="edit_spell_duration_${spell.id}" value="${spell.duration || ""}"></div>
+              <div><label>Damage Dice</label><select id="edit_spell_dice_${spell.id}">${optionList(["","1d4","1d6","1d8","1d10","1d12","2d6","3d6","4d6","custom"], ["","1d4","1d6","1d8","1d10","1d12","2d6","3d6","4d6"].includes(spell.dice) ? spell.dice : "custom")}</select></div>
+              <div><label>Custom Dice</label><input id="edit_spell_customDice_${spell.id}" value="${["","1d4","1d6","1d8","1d10","1d12","2d6","3d6","4d6"].includes(spell.dice) ? "" : spell.dice}"></div>
+              <div><label>Damage Type</label><select id="edit_spell_type_${spell.id}">${optionList(["","acid","cold","fire","force","lightning","necrotic","poison","psychic","radiant","thunder"], spell.type || "")}</select></div>
+            </div>
+            <label>Notes</label>
+            <textarea id="edit_spell_notes_${spell.id}">${spell.notes || ""}</textarea>
+            <button class="success" onclick="saveSpellEdit(${spell.id})">Save Changes</button>
           </div>
           <div class="cast-row" id="castOptions_${spell.id}">
             <strong>Choose spell slot level:</strong>
@@ -2209,6 +2254,7 @@
       document.getElementById("newFeatureDescription").value = "";
 
       renderFeatures();
+      hideBuilder("featureBuilder");
       saveData();
     }
 
@@ -2248,20 +2294,24 @@
     }
 
     function editFeature(id) {
+      const panel = document.getElementById(`edit_feature_${id}`);
+      if (panel) panel.classList.toggle("active");
+    }
+
+    function saveFeatureEdit(id) {
       const feature = classFeatures.find(f => f.id === id);
       if (!feature) return;
 
-      jumpToSection("featureBuilder");
-      const builder = document.getElementById("featureBuilder_builder");
-      if (builder) builder.classList.remove("builder-hidden");
+      feature.name = document.getElementById(`edit_feature_name_${id}`).value.trim() || "Unnamed Feature";
+      feature.action = document.getElementById(`edit_feature_action_${id}`).value;
+      feature.maxUses = Math.max(0, Number(document.getElementById(`edit_feature_maxUses_${id}`).value) || 0);
+      feature.reset = document.getElementById(`edit_feature_reset_${id}`).value;
+      feature.description = document.getElementById(`edit_feature_description_${id}`).value.trim();
 
-      document.getElementById("newFeatureName").value = feature.name || "";
-      document.getElementById("newFeatureAction").value = feature.action || "Action";
-      document.getElementById("newFeatureMaxUses").value = feature.maxUses || 0;
-      document.getElementById("newFeatureReset").value = feature.reset || "Long Rest";
-      document.getElementById("newFeatureDescription").value = feature.description || "";
+      if (feature.used > feature.maxUses) feature.used = feature.maxUses;
 
-      deleteFeature(id);
+      renderFeatures();
+      saveData();
     }
 
     function useFeature(id) {
@@ -2332,6 +2382,17 @@
               <button class="mini-button danger" onclick="deleteFeature(${feature.id})">Delete</button>
             </div>
           </div>
+          <div class="inline-edit" id="edit_feature_${feature.id}">
+            <div class="grid-wide">
+              <div><label>Name</label><input id="edit_feature_name_${feature.id}" value="${feature.name || ""}"></div>
+              <div><label>Action</label><select id="edit_feature_action_${feature.id}">${optionList(["Action","Bonus Action","Reaction","Free / Passive","Other"], feature.action || "Action")}</select></div>
+              <div><label>Max Uses</label><input type="number" id="edit_feature_maxUses_${feature.id}" value="${feature.maxUses || 0}"></div>
+              <div><label>Resets On</label><select id="edit_feature_reset_${feature.id}">${optionList(["Long Rest","Short Rest","Turn","No Reset"], feature.reset || "Long Rest")}</select></div>
+            </div>
+            <label>Description</label>
+            <textarea id="edit_feature_description_${feature.id}">${feature.description || ""}</textarea>
+            <button class="success" onclick="saveFeatureEdit(${feature.id})">Save Changes</button>
+          </div>
         `;
 
         container.appendChild(div);
@@ -2372,6 +2433,7 @@
       document.getElementById("newInventoryNotes").value = "";
 
       renderInventory();
+      hideBuilder("inventoryBuilder");
       saveData();
     }
 
@@ -2382,19 +2444,21 @@
     }
 
     function editInventoryItem(id) {
+      const panel = document.getElementById(`edit_inventory_${id}`);
+      if (panel) panel.classList.toggle("active");
+    }
+
+    function saveInventoryEdit(id) {
       const item = inventoryItems.find(i => i.id === id);
       if (!item) return;
 
-      jumpToSection("inventoryBuilder");
-      const builder = document.getElementById("inventoryBuilder_builder");
-      if (builder) builder.classList.remove("builder-hidden");
+      item.category = document.getElementById(`edit_inventory_category_${id}`).value;
+      item.name = document.getElementById(`edit_inventory_name_${id}`).value.trim() || "Unnamed Item";
+      item.qty = Number(document.getElementById(`edit_inventory_qty_${id}`).value) || 1;
+      item.notes = document.getElementById(`edit_inventory_notes_${id}`).value.trim();
 
-      document.getElementById("newInventoryCategory").value = item.category || "Misc";
-      document.getElementById("newInventoryName").value = item.name || "";
-      document.getElementById("newInventoryQty").value = item.qty || 1;
-      document.getElementById("newInventoryNotes").value = item.notes || "";
-
-      deleteInventoryItem(id);
+      renderInventory();
+      saveData();
     }
 
     function renderInventory() {
@@ -2427,12 +2491,37 @@
               <button class="mini-button ghost" onclick="editInventoryItem(${item.id})">Edit</button>
               <button class="mini-button danger" onclick="deleteInventoryItem(${item.id})">Delete</button>
             </div>
+            <div class="inline-edit" id="edit_inventory_${item.id}" style="grid-column: 1 / -1;">
+              <div class="grid-wide">
+                <div><label>Category</label><select id="edit_inventory_category_${item.id}">${optionList(["Weapons","Armor","Potions","Magic Items","Gold / Coins","Quest Items","Misc"], item.category || "Misc")}</select></div>
+                <div><label>Name</label><input id="edit_inventory_name_${item.id}" value="${item.name || ""}"></div>
+                <div><label>Quantity</label><input type="number" id="edit_inventory_qty_${item.id}" value="${item.qty || 1}"></div>
+              </div>
+              <label>Notes</label>
+              <textarea id="edit_inventory_notes_${item.id}">${item.notes || ""}</textarea>
+              <button class="success" onclick="saveInventoryEdit(${item.id})">Save Changes</button>
+            </div>
           `;
           group.appendChild(row);
         });
 
         container.appendChild(group);
       });
+    }
+
+    function optionList(options, selected) {
+      return options.map(opt => `<option value="${opt}" ${String(opt) === String(selected) ? "selected" : ""}>${opt}</option>`).join("");
+    }
+
+    function yesNoOptions(value) {
+      return `
+        <option value="yes" ${value ? "selected" : ""}>Yes</option>
+        <option value="no" ${!value ? "selected" : ""}>No</option>
+      `;
+    }
+
+    function spellLevelOptions(selected) {
+      return optionList(["Cantrip","1","2","3","4","5","6","7","8","9"], selected);
     }
 
     function renderAttacks() {
@@ -2459,6 +2548,21 @@
           <div>
             <div class="saved-attack-main rollable" onclick="rollAttack(${attack.id})">${attack.name}: ${formatBonus(hitBonus)} to hit</div>
             <div class="saved-attack-sub">${dmgText} • ${actualAbility.toUpperCase()} ${attack.proficient ? "• Proficient" : ""}${masteryText}${propText}</div>
+            <div class="inline-edit" id="edit_attack_${attack.id}">
+              <div class="grid-wide">
+                <div><label>Name</label><input id="edit_attack_name_${attack.id}" value="${attack.name || ""}"></div>
+                <div><label>Weapon</label><select id="edit_attack_weapon_${attack.id}">${optionList(Object.keys(weaponData), attack.weapon || "Custom")}</select></div>
+                <div><label>Ability</label><select id="edit_attack_ability_${attack.id}">${optionList(["auto","str","dex","con","int","wis","cha"], attack.smartAbility ? "auto" : attack.ability)}</select></div>
+                <div><label>Proficient?</label><select id="edit_attack_prof_${attack.id}">${yesNoOptions(attack.proficient)}</select></div>
+                <div><label>Hit Misc</label><input type="number" id="edit_attack_hitMisc_${attack.id}" value="${attack.hitMisc || 0}"></div>
+                <div><label>Damage Dice</label><select id="edit_attack_dice_${attack.id}">${optionList(damageDiceOptions, damageDiceOptions.includes(attack.dice) ? attack.dice : "custom")}</select></div>
+                <div><label>Custom Dice</label><input id="edit_attack_customDice_${attack.id}" value="${damageDiceOptions.includes(attack.dice) ? "" : attack.dice}"></div>
+                <div><label>Damage Type</label><select id="edit_attack_type_${attack.id}">${optionList(["slashing","piercing","bludgeoning","acid","cold","fire","force","lightning","necrotic","poison","psychic","radiant","thunder"], attack.type || "slashing")}</select></div>
+                <div><label>Damage Misc</label><input type="number" id="edit_attack_dmgMisc_${attack.id}" value="${attack.dmgMisc || 0}"></div>
+                <div><label>Mastery</label><select id="edit_attack_mastery_${attack.id}">${optionList(["None","Cleave","Graze","Nick","Push","Sap","Slow","Topple","Vex"], attack.mastery || "None")}</select></div>
+              </div>
+              <button class="success" onclick="saveAttackEdit(${attack.id})">Save Changes</button>
+            </div>
           </div>
           <div>
             <button class="mini-button purple" onclick="rollAttack(${attack.id})">Roll Hit</button>
@@ -2994,11 +3098,11 @@
           collapsed.push(card.dataset.section);
         }
       });
-      localStorage.setItem("dndSheetV17Collapsed", JSON.stringify(collapsed));
+      localStorage.setItem("dndSheetV18Collapsed", JSON.stringify(collapsed));
     }
 
     function loadCollapsedSections() {
-      const saved = localStorage.getItem("dndSheetV17Collapsed");
+      const saved = localStorage.getItem("dndSheetV18Collapsed");
       let collapsed;
 
       if (!saved) {
@@ -3020,8 +3124,8 @@
       const confirmReset = confirm("Are you sure you want to reset this character sheet?");
       if (!confirmReset) return;
 
-      localStorage.removeItem("dndCharacterSheetV17");
-      localStorage.removeItem("dndSheetV17Collapsed");
+      localStorage.removeItem("dndCharacterSheetV18");
+      localStorage.removeItem("dndSheetV18Collapsed");
       location.reload();
     }
 
@@ -3062,12 +3166,12 @@
         data[`spell${level}_used`] = getUsedSpellSlots(level);
       });
 
-      localStorage.setItem("dndCharacterSheetV17", JSON.stringify(data));
+      localStorage.setItem("dndCharacterSheetV18", JSON.stringify(data));
       updateStickyBar();
     }
 
     function loadData() {
-      const saved = localStorage.getItem("dndCharacterSheetV17");
+      const saved = localStorage.getItem("dndCharacterSheetV18");
       if (!saved) return;
 
       const data = JSON.parse(saved);
@@ -3108,6 +3212,11 @@
         }
         updateSpellSummary(level);
       });
+    }
+
+    function hideBuilder(sectionName) {
+      const builder = document.getElementById(sectionName + "_builder");
+      if (builder) builder.classList.add("builder-hidden");
     }
 
     function toggleBuilder(sectionName) {
