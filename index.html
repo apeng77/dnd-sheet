@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>D&D Character Sheet v10</title>
+  <title>D&D Character Sheet v12</title>
   <style>
     :root {
       --bg: #111827;
@@ -511,6 +511,116 @@
       white-space: pre-wrap;
     }
 
+    .turn-tracker {
+      position: sticky;
+      top: 78px;
+      z-index: 850;
+      background: #020617;
+      border: 1px solid #374151;
+      border-radius: 16px;
+      padding: 10px;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+    }
+
+    .turn-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .turn-btn {
+      background: #1f2937;
+      border: 1px solid #4b5563;
+      color: #dbeafe;
+      margin: 0;
+      padding: 10px 6px;
+      min-height: 48px;
+      font-size: 13px;
+    }
+
+    .turn-btn.used {
+      background: #064e3b;
+      border-color: #34d399;
+      color: #d1fae5;
+    }
+
+    .turn-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .turn-top button {
+      margin: 0;
+    }
+
+    .cast-row {
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 10px;
+      padding: 10px;
+      margin-top: 8px;
+      display: none;
+    }
+
+    .cast-row.active {
+      display: block;
+    }
+
+    .cast-buttons {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .spell-limit-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .spell-limit-box {
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 12px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .spell-limit-value {
+      display: block;
+      font-size: 22px;
+      font-weight: bold;
+      color: #bfdbfe;
+      margin-top: 3px;
+    }
+
+    .limit-good {
+      color: #86efac;
+    }
+
+    .limit-warn {
+      color: #fcd34d;
+    }
+
+    .limit-bad {
+      color: #fca5a5;
+    }
+
+
+    .cast-slot-btn {
+      padding: 8px 10px;
+      min-height: 38px;
+      font-size: 13px;
+      background: #4b5563;
+    }
+
     .spell-main, .inventory-main {
       display: grid;
       grid-template-columns: 1fr auto;
@@ -613,7 +723,7 @@
       max-width: 1100px;
       margin: auto;
       display: grid;
-      grid-template-columns: repeat(6, 1fr);
+      grid-template-columns: repeat(7, 1fr);
       gap: 6px;
     }
 
@@ -667,7 +777,7 @@
       }
 
       .bottom-nav-inner {
-        grid-template-columns: repeat(6, 1fr);
+        grid-template-columns: repeat(7, 1fr);
       }
 
       .nav-btn {
@@ -683,6 +793,14 @@
       .death-circle {
         width: 38px;
         height: 38px;
+      }
+
+      .turn-tracker {
+        top: 112px;
+      }
+
+      .turn-grid {
+        grid-template-columns: repeat(2, 1fr);
       }
     }
   </style>
@@ -700,13 +818,27 @@
   </div>
 
   <div class="container" id="app">
-    <h1>D&D Character Sheet v10</h1>
+    <h1>D&D Character Sheet v12</h1>
 
     <div class="combat-toggle">
       <input type="checkbox" id="combatMode">
       <strong>Quick Combat Mode</strong>
       <span class="hint">Shows only the most useful combat sections.</span>
     </div>
+
+    <div class="turn-tracker" data-section="turnTracker">
+      <div class="turn-top">
+        <strong>Turn Tracker</strong>
+        <button onclick="startTurn()" class="success">Start Turn / Reset</button>
+      </div>
+      <div class="turn-grid">
+        <button id="turnAction" class="turn-btn" onclick="toggleTurnUse('Action')">Action</button>
+        <button id="turnBonus" class="turn-btn" onclick="toggleTurnUse('Bonus')">Bonus Action</button>
+        <button id="turnReaction" class="turn-btn" onclick="toggleTurnUse('Reaction')">Reaction</button>
+        <button id="turnMovement" class="turn-btn" onclick="toggleTurnUse('Movement')">Movement</button>
+      </div>
+    </div>
+
 
     <div class="search-box combat-hide">
       <input id="sheetSearch" placeholder="Search sheet... ex: spell, potion, perception, longsword">
@@ -1069,12 +1201,12 @@
 
     <div class="card non-combat" data-section="featureBuilder">
       <div class="section-header" onclick="toggleSection(this)">
-        <h2>Class Feature Builder</h2>
+        <h2>Feature Builder</h2>
         <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
         <div class="attack-builder-panel">
-          <h3>Add Class Feature</h3>
+          <h3>Add Feature</h3>
           <div class="grid-wide">
             <div>
               <label>Feature Name</label>
@@ -1106,14 +1238,13 @@
           <label>Description</label>
           <textarea id="newFeatureDescription" placeholder="What this feature does, damage, save DC, reminders, etc."></textarea>
           <button onclick="addFeature()" class="success">Add Feature</button>
-          <button onclick="addPresetFeatures()" class="purple">Add Class Presets</button>
         </div>
       </div>
     </div>
 
     <div class="card" data-section="features">
       <div class="section-header" onclick="toggleSection(this)">
-        <h2>Class Feature Cards</h2>
+        <h2>Features</h2>
         <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
@@ -1127,7 +1258,14 @@
         <span class="collapse-arrow">⌃</span>
       </div>
       <div class="section-content">
-        <p class="hint">Spell slot maxes auto-update from your class and level. Tap bubbles to mark used slots.</p>
+        <p class="hint">Spell slot maxes, cantrip limits, prepared spell limits, and spellcasting ability update from your class and level.</p>
+        <div class="spell-limit-grid" id="spellLimitSummary">
+          <div class="spell-limit-box">Ability <span class="spell-limit-value" id="spellAbilitySummary">None</span></div>
+          <div class="spell-limit-box">Spell Attack <span class="spell-limit-value" id="spellAttackSummary">—</span></div>
+          <div class="spell-limit-box">Save DC <span class="spell-limit-value" id="spellDcSummary">—</span></div>
+          <div class="spell-limit-box">Cantrips <span class="spell-limit-value" id="cantripLimitSummary">0/0</span></div>
+          <div class="spell-limit-box">Prepared <span class="spell-limit-value" id="preparedLimitSummary">0/0</span></div>
+        </div>
         <div id="spellSlotSection"></div>
       </div>
     </div>
@@ -1329,6 +1467,7 @@
 
     <div class="bottom-nav">
       <div class="bottom-nav-inner">
+        <button class="nav-btn" onclick="jumpToSection('turnTracker')">⏱️<br>Turn</button>
         <button class="nav-btn" onclick="jumpToSection('hp')">❤️<br>HP</button>
         <button class="nav-btn" onclick="jumpToSection('attacks')">⚔️<br>Atk</button>
         <button class="nav-btn" onclick="jumpToSection('spells')">✨<br>Slots</button>
@@ -1351,6 +1490,7 @@
     let spells = [];
     let inventoryItems = [];
     let classFeatures = [];
+    let turnState = { Action: false, Bonus: false, Reaction: false, Movement: false };
 
     const basicFields = [
       "name", "player", "race", "class", "level", "background",
@@ -1495,6 +1635,55 @@
     };
 
 
+
+    const spellLimitsByClass = {
+      "Artificer": {
+        ability: "int",
+        cantrips: [2,2,2,2,2,2,2,2,2,3,3,3,3,4,4,4,4,4,4,4],
+        prepared: [2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12]
+      },
+      "Bard": {
+        ability: "cha",
+        cantrips: [2,2,2,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4],
+        prepared: [4,5,6,7,9,10,11,12,14,15,16,16,17,18,19,21,22,23,24,25]
+      },
+      "Cleric": {
+        ability: "wis",
+        cantrips: [3,3,3,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5],
+        prepared: [4,5,6,7,9,10,11,12,14,15,16,16,17,18,19,21,22,23,24,25]
+      },
+      "Druid": {
+        ability: "wis",
+        cantrips: [2,2,2,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4],
+        prepared: [4,5,6,7,9,10,11,12,14,15,16,16,17,18,19,21,22,23,24,25]
+      },
+      "Paladin": {
+        ability: "cha",
+        cantrips: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        prepared: [0,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11]
+      },
+      "Ranger": {
+        ability: "wis",
+        cantrips: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        prepared: [0,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11]
+      },
+      "Sorcerer": {
+        ability: "cha",
+        cantrips: [4,4,4,5,5,5,5,5,5,6,6,6,6,6,6,6,6,6,6,6],
+        prepared: [4,5,6,7,9,10,11,12,14,15,16,16,17,18,19,21,22,23,24,25]
+      },
+      "Warlock": {
+        ability: "cha",
+        cantrips: [2,2,2,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4],
+        prepared: [2,3,4,5,6,7,8,9,10,10,11,11,12,12,13,13,14,14,15,15]
+      },
+      "Wizard": {
+        ability: "int",
+        cantrips: [3,3,3,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5],
+        prepared: [4,5,6,7,9,10,11,12,14,15,16,16,17,18,19,21,22,23,24,25]
+      }
+    };
+
     const featurePresets = {
       "Barbarian": [
         { name: "Rage", action: "Bonus Action", maxUses: 2, reset: "Long Rest", description: "Enter rage. Track damage bonus/resistance based on your table rules." },
@@ -1617,7 +1806,7 @@
 
     function getSpellAbility() {
       const className = document.getElementById("class").value;
-      return classPresets[className]?.spellAbility || document.getElementById("newSpellAbility")?.value || "cha";
+      return spellLimitsByClass[className]?.ability || classPresets[className]?.spellAbility || document.getElementById("newSpellAbility")?.value || "cha";
     }
 
     function hasSpellcastingClass() {
@@ -1632,6 +1821,56 @@
 
     function getSpellSaveDc() {
       return 8 + getAbilityMod(getSpellAbility()) + getProfBonus();
+    }
+
+    function getSpellLimits() {
+      const className = document.getElementById("class").value;
+      const level = getCleanLevel();
+      const limits = spellLimitsByClass[className];
+
+      if (!limits) {
+        return { ability: "none", cantrips: 0, prepared: 0 };
+      }
+
+      return {
+        ability: limits.ability,
+        cantrips: limits.cantrips[level - 1] || 0,
+        prepared: limits.prepared[level - 1] || 0
+      };
+    }
+
+    function getCurrentCantripCount() {
+      return spells.filter(spell => spell.level === "Cantrip").length;
+    }
+
+    function getCurrentPreparedCount() {
+      return spells.filter(spell => spell.level !== "Cantrip" && spell.prepared !== false).length;
+    }
+
+    function updateSpellLimitSummary() {
+      const limits = getSpellLimits();
+      const cantripCount = getCurrentCantripCount();
+      const preparedCount = getCurrentPreparedCount();
+
+      const abilityText = limits.ability === "none" ? "None" : limits.ability.toUpperCase();
+      document.getElementById("spellAbilitySummary").textContent = abilityText;
+
+      if (limits.ability === "none") {
+        document.getElementById("spellAttackSummary").textContent = "—";
+        document.getElementById("spellDcSummary").textContent = "—";
+      } else {
+        document.getElementById("spellAttackSummary").textContent = formatBonus(getSpellAttackBonus());
+        document.getElementById("spellDcSummary").textContent = getSpellSaveDc();
+      }
+
+      const cantripEl = document.getElementById("cantripLimitSummary");
+      const preparedEl = document.getElementById("preparedLimitSummary");
+
+      cantripEl.textContent = `${cantripCount}/${limits.cantrips}`;
+      preparedEl.textContent = `${preparedCount}/${limits.prepared}`;
+
+      cantripEl.className = "spell-limit-value " + (cantripCount > limits.cantrips ? "limit-bad" : cantripCount === limits.cantrips ? "limit-warn" : "limit-good");
+      preparedEl.className = "spell-limit-value " + (preparedCount > limits.prepared ? "limit-bad" : preparedCount === limits.prepared ? "limit-warn" : "limit-good");
     }
 
     function createCalculatedRows() {
@@ -1797,17 +2036,35 @@
     function addSpell() {
       const diceValue = document.getElementById("newSpellDice").value;
       const customDice = document.getElementById("newSpellCustomDice").value.trim();
+      const newSpellLevel = document.getElementById("newSpellLevel").value;
+      const isPrepared = document.getElementById("newSpellPrepared").value === "yes";
+      const limits = getSpellLimits();
+
+      if (limits.ability === "none") {
+        const proceed = confirm("This class does not normally have spellcasting limits. Add this spell anyway?");
+        if (!proceed) return;
+      }
+
+      if (newSpellLevel === "Cantrip" && getCurrentCantripCount() >= limits.cantrips) {
+        alert(`Cantrip limit reached for your class and level (${limits.cantrips}).`);
+        return;
+      }
+
+      if (newSpellLevel !== "Cantrip" && isPrepared && getCurrentPreparedCount() >= limits.prepared) {
+        alert(`Prepared spell limit reached for your class and level (${limits.prepared}). Mark the spell as Not Prepared or remove another prepared spell.`);
+        return;
+      }
 
       const spell = {
         id: Date.now(),
         name: document.getElementById("newSpellName").value.trim() || "Unnamed Spell",
-        level: document.getElementById("newSpellLevel").value,
+        level: newSpellLevel,
         kind: document.getElementById("newSpellKind").value,
         ability: document.getElementById("newSpellAbility").value,
         dice: diceValue === "custom" ? (customDice || "") : diceValue,
         type: document.getElementById("newSpellType").value,
         notes: document.getElementById("newSpellNotes").value.trim(),
-        prepared: document.getElementById("newSpellPrepared").value === "yes",
+        prepared: isPrepared,
         concentration: document.getElementById("newSpellConcentration").value === "yes",
         duration: document.getElementById("newSpellDuration").value.trim()
       };
@@ -1830,6 +2087,7 @@
     function deleteSpell(id) {
       spells = spells.filter(spell => spell.id !== id);
       renderSpells();
+      updateSpellLimitSummary();
       saveData();
     }
 
@@ -1839,9 +2097,12 @@
       container.innerHTML = "";
 
       if (spells.length === 0) {
+        updateSpellLimitSummary();
         container.innerHTML = `<p class="hint">No spells or cantrips added yet.</p>`;
         return;
       }
+
+      updateSpellLimitSummary();
 
       spells.forEach(spell => {
         const spellAttackBonus = getAbilityMod(spell.ability) + getProfBonus();
@@ -1869,43 +2130,85 @@
               <div class="spell-sub">${spell.notes || ""}</div>
             </div>
             <div>
-              ${spell.level !== "Cantrip" ? `<button class="mini-button success" onclick="castSpell(${spell.id})">Cast</button>` : ""}
+              ${spell.level !== "Cantrip" ? `<button class="mini-button success" onclick="toggleCastOptions(${spell.id})">Cast</button>` : ""}
               ${spell.kind === "Spell Attack" ? `<button class="mini-button purple" onclick="rollSpellAttack(${spell.id})">Roll Hit</button>` : ""}
               ${spell.dice ? `<button class="mini-button purple" onclick="rollSpellDamage(${spell.id})">Roll Dmg</button>` : ""}
               ${spell.concentration ? `<button class="mini-button warning" onclick="toggleConcentration(${spell.id})">Concentration</button>` : ""}
               <button class="mini-button danger" onclick="deleteSpell(${spell.id})">Delete</button>
             </div>
           </div>
+          <div class="cast-row" id="castOptions_${spell.id}">
+            <strong>Choose spell slot level:</strong>
+            <div class="cast-buttons" id="castButtons_${spell.id}"></div>
+          </div>
         `;
         container.appendChild(div);
       });
     }
 
-    function castSpell(id) {
+    function toggleCastOptions(id) {
+      const spell = spells.find(s => s.id === id);
+      if (!spell) return;
+
+      const row = document.getElementById(`castOptions_${id}`);
+      const buttons = document.getElementById(`castButtons_${id}`);
+      if (!row || !buttons) return;
+
+      row.classList.toggle("active");
+      buttons.innerHTML = "";
+
+      const spellMinLevel = Number(spell.level);
+      for (let level = spellMinLevel; level <= 9; level++) {
+        const max = Number(document.getElementById(`spell${level}_max`)?.value) || 0;
+        const used = getUsedSpellSlots(level);
+        const available = max - used;
+
+        if (max > 0) {
+          const btn = document.createElement("button");
+          btn.className = "cast-slot-btn";
+          btn.textContent = `Lv ${level} (${available}/${max})`;
+          btn.disabled = available <= 0;
+          btn.onclick = () => castSpellAtLevel(id, level);
+          buttons.appendChild(btn);
+        }
+      }
+
+      if (!buttons.children.length) {
+        buttons.innerHTML = `<span class="hint">No available spell slot levels for this spell.</span>`;
+      }
+    }
+
+    function castSpellAtLevel(id, slotLevel) {
       const spell = spells.find(s => s.id === id);
       if (!spell || spell.level === "Cantrip") return;
 
-      const level = Number(spell.level);
-      const max = Number(document.getElementById(`spell${level}_max`)?.value) || 0;
-      const used = getUsedSpellSlots(level);
-
-      if (used >= max) {
-        showDicePop(`No level ${level} spell slots left.`);
+      const spellMinLevel = Number(spell.level);
+      if (slotLevel < spellMinLevel) {
+        showDicePop(`Need at least a level ${spellMinLevel} slot.`);
         return;
       }
 
-      const next = document.querySelector(`#spell${level}_bubbles .slot-bubble:not(.used)`);
-      if (next) next.classList.add("used");
-      updateSpellSummary(level);
+      const max = Number(document.getElementById(`spell${slotLevel}_max`)?.value) || 0;
+      const used = getUsedSpellSlots(slotLevel);
 
-      if (spell.concentration) {
-        conditions.forEach(condition => {
-          const id = "condition_" + condition.replace(/\s+/g, "_").toLowerCase();
-          if (condition === "Concentration") document.getElementById(id)?.classList.add("active");
-        });
+      if (used >= max) {
+        showDicePop(`No level ${slotLevel} spell slots left.`);
+        return;
       }
 
-      showDicePop(`Cast ${spell.name}: used 1 level ${level} slot.`);
+      const next = document.querySelector(`#spell${slotLevel}_bubbles .slot-bubble:not(.used)`);
+      if (next) next.classList.add("used");
+      updateSpellSummary(slotLevel);
+
+      if (spell.concentration) {
+        const c = document.getElementById("condition_concentration");
+        if (c) c.classList.add("active");
+      }
+
+      const row = document.getElementById(`castOptions_${id}`);
+      if (row) row.classList.remove("active");
+
+      showDicePop(`Cast ${spell.name} using a level ${slotLevel} slot.`);
       saveData();
     }
 
@@ -1927,6 +2230,46 @@
       rollDamage(spell.name, spell.dice, 0);
     }
 
+
+
+    function renderTurnTracker() {
+      const map = {
+        Action: "turnAction",
+        Bonus: "turnBonus",
+        Reaction: "turnReaction",
+        Movement: "turnMovement"
+      };
+
+      Object.keys(map).forEach(key => {
+        const btn = document.getElementById(map[key]);
+        if (!btn) return;
+        btn.classList.toggle("used", !!turnState[key]);
+
+        const label = key === "Bonus" ? "Bonus Action" : key;
+        btn.textContent = turnState[key] ? `✓ ${label}` : label;
+      });
+    }
+
+    function toggleTurnUse(type) {
+      turnState[type] = !turnState[type];
+      renderTurnTracker();
+      saveData();
+    }
+
+    function startTurn() {
+      turnState = { Action: false, Bonus: false, Reaction: false, Movement: false };
+
+      classFeatures.forEach(feature => {
+        if (feature.reset === "Turn") {
+          feature.used = 0;
+        }
+      });
+
+      renderTurnTracker();
+      renderFeatures();
+      showDicePop("Turn reset.");
+      saveData();
+    }
 
     function addFeature() {
       const feature = {
@@ -2245,7 +2588,7 @@
       });
 
       const spellAbility = document.getElementById("newSpellAbility");
-      if (spellAbility) spellAbility.value = preset.spellAbility;
+      if (spellAbility) spellAbility.value = spellLimitsByClass[className]?.ability || preset.spellAbility;
 
       document.getElementById("hitDiceAvailable").value = getCleanLevel();
       applySpellSlotsFromClassLevel();
@@ -2282,6 +2625,7 @@
       updatePassives();
       renderAttacks();
       updateSpellSlots();
+      updateSpellLimitSummary();
       updateStickyBar();
     }
 
@@ -2745,6 +3089,7 @@
       data.spells = spells;
       data.inventoryItems = inventoryItems;
       data.classFeatures = classFeatures;
+      data.turnState = turnState;
 
       spellLevels.forEach(level => {
         data[`spell${level}_used`] = getUsedSpellSlots(level);
@@ -2781,6 +3126,7 @@
       spells = Array.isArray(data.spells) ? data.spells : [];
       inventoryItems = Array.isArray(data.inventoryItems) ? data.inventoryItems : [];
       classFeatures = Array.isArray(data.classFeatures) ? data.classFeatures : [];
+      turnState = data.turnState || { Action: false, Bonus: false, Reaction: false, Movement: false };
       renderAttacks();
       renderSpells();
       renderInventory();
@@ -2798,7 +3144,7 @@
     }
 
     function jumpToSection(sectionName) {
-      const card = document.querySelector(`.card[data-section="${sectionName}"]`);
+      const card = document.querySelector(`[data-section="${sectionName}"]`);
       if (!card) return;
 
       card.style.display = "";
@@ -2903,10 +3249,12 @@
     renderSpells();
     renderInventory();
     renderFeatures();
+    renderTurnTracker();
     loadCollapsedSections();
     setupListeners();
     updateModifiers();
     updateDeathStatus();
+    renderTurnTracker();
     document.getElementById("app").classList.toggle("combat-mode", document.getElementById("combatMode").checked);
   </script>
 </body>
