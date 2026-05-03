@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>D&D Character Sheet v22</title>
+  <title>D&D Character Sheet v23</title>
   <style>
     :root {
       --bg: #111827;
@@ -967,7 +967,6 @@
   <div class="home-screen" id="homeScreen">
     <div class="home-card">
       <h1 class="home-title">D&D Character Sheets</h1>
-      <div class="user-pill" id="userInfo">No login required</div>
       <p class="hint">Create a cloud sheet or load one with a sheet code. Anyone with the code can open the sheet.</p>
 
       <div id="homeMain">
@@ -1011,7 +1010,7 @@
   </div>
 
   <div class="container" id="app">
-    <h1>D&D Character Sheet v22</h1>
+    <h1>D&D Character Sheet v23</h1>
 
     <div class="sheet-top-actions">
       <button class="ghost" onclick="goToSheetHome()">Sheet Home</button>
@@ -1974,11 +1973,11 @@
 
 
     function getSheetStorageKey(id) {
-      return "dndCharacterSheetV22_" + id;
+      return "dndCharacterSheetV23_" + id;
     }
 
     function getCollapsedStorageKey(id) {
-      return "dndSheetV22Collapsed_" + id;
+      return "dndSheetV23Collapsed_" + id;
     }
 
     function getUserSheetsCollection() {
@@ -2046,12 +2045,12 @@
     }
 
     async function createNewSheet() {
-      if (!currentUser) { alert("Please sign in first."); return; }
       const nameInput = document.getElementById("newSheetName");
       const sheetName = nameInput.value.trim() || "New Character";
-      const ref = getUserSheetsCollection().doc(generateSheetCode());
-      currentSheetId = ref.id;
-      localStorage.setItem("dndActiveSheetIdV22", currentSheetId);
+      const code = generateSheetCode();
+
+      currentSheetId = code;
+      localStorage.setItem("dndActiveSheetIdV23", currentSheetId);
 
       suppressAutoSave = true;
       clearCurrentForm();
@@ -2059,9 +2058,17 @@
 
       document.getElementById("name").value = sheetName;
       nameInput.value = "";
+
       await saveData();
+
       document.getElementById("homeScreen").classList.add("hidden");
+      showHomeMain();
       updateStickyBar();
+      showDicePop("Sheet created: " + currentSheetId);
+
+      setTimeout(() => {
+        alert("Sheet created! Your sheet code is: " + currentSheetId + "\n\nSave this code so you can load the sheet later.");
+      }, 150);
     }
 
     async function renderSheetList() {
@@ -2071,7 +2078,7 @@
     async function loadSheetById(id) {
       if (!currentUser) return;
       currentSheetId = id;
-      localStorage.setItem("dndActiveSheetIdV22", currentSheetId);
+      localStorage.setItem("dndActiveSheetIdV23", currentSheetId);
 
       suppressAutoSave = true;
       clearCurrentForm(false);
@@ -2081,7 +2088,7 @@
       if (!loaded) {
         alert("No sheet found with that code.");
         currentSheetId = null;
-        localStorage.removeItem("dndActiveSheetIdV22");
+        localStorage.removeItem("dndActiveSheetIdV23");
         return;
       }
 
@@ -2102,7 +2109,7 @@
       localStorage.removeItem(getCollapsedStorageKey(id));
       if (currentSheetId === id) {
         currentSheetId = null;
-        localStorage.removeItem("dndActiveSheetIdV22");
+        localStorage.removeItem("dndActiveSheetIdV23");
       }
       await renderSheetList();
     }
@@ -2118,7 +2125,7 @@
       const newName = oldName + " Copy";
       await newRef.set({ ...oldData, name: newName, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
       currentSheetId = newRef.id;
-      localStorage.setItem("dndActiveSheetIdV22", currentSheetId);
+      localStorage.setItem("dndActiveSheetIdV23", currentSheetId);
       document.getElementById("name").value = newName;
       await saveData();
       showDicePop("Cloud sheet duplicated.");
@@ -2133,7 +2140,7 @@
       localStorage.removeItem(getSheetStorageKey(id));
       localStorage.removeItem(getCollapsedStorageKey(id));
       currentSheetId = null;
-      localStorage.removeItem("dndActiveSheetIdV22");
+      localStorage.removeItem("dndActiveSheetIdV23");
       clearCurrentForm();
       document.getElementById("homeScreen").classList.remove("hidden");
       showHomeMain();
@@ -2184,7 +2191,7 @@
     }
 
     async function initializeSheetDatabase() {
-      const activeId = localStorage.getItem("dndActiveSheetIdV22");
+      const activeId = localStorage.getItem("dndActiveSheetIdV23");
 
       if (activeId) {
         currentSheetId = activeId;
