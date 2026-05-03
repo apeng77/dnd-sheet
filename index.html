@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>D&D Character Sheet v26</title>
+  <title>D&D Character Sheet v27</title>
   <style>
     :root {
       --bg: #111827;
@@ -1010,7 +1010,7 @@
   </div>
 
   <div class="container" id="app">
-    <h1>D&D Character Sheet v26</h1>
+    <h1>D&D Character Sheet v27</h1>
 
     <div class="sheet-top-actions">
       <button class="ghost" onclick="goToSheetHome()">Sheet Home</button>
@@ -1968,11 +1968,11 @@
 
 
     function getSheetStorageKey(id) {
-      return "dndCharacterSheetV26_" + id;
+      return "dndCharacterSheetV27_" + id;
     }
 
     function getCollapsedStorageKey(id) {
-      return "dndSheetV26Collapsed_" + id;
+      return "dndSheetV27Collapsed_" + id;
     }
 
     function getUserSheetsCollection() {
@@ -2045,6 +2045,15 @@
       return code;
     }
 
+    function normalizeSheetCode(code) {
+      return String(code || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    }
+
+    function validateSheetCode(code) {
+      return /^[A-Z0-9]{4,20}$/.test(code);
+    }
+
+
     async function loadSheetFromCode() {
       const input = document.getElementById("loadSheetCode");
       const code = normalizeSheetCode(input.value);
@@ -2066,10 +2075,10 @@
     async function createNewSheet() {
       const nameInput = document.getElementById("newSheetName");
       const sheetName = nameInput.value.trim() || "New Character";
-      const code = await generateUniqueSheetCode();
+      const code = generateSheetCode();
 
       currentSheetId = code;
-      localStorage.setItem("dndActiveSheetIdV26", currentSheetId);
+      localStorage.setItem("dndActiveSheetIdV27", currentSheetId);
 
       suppressAutoSave = true;
       clearCurrentForm();
@@ -2108,7 +2117,7 @@
       }
 
       currentSheetId = code;
-      localStorage.setItem("dndActiveSheetIdV26", currentSheetId);
+      localStorage.setItem("dndActiveSheetIdV27", currentSheetId);
 
       suppressAutoSave = true;
       clearCurrentForm(false);
@@ -2119,7 +2128,7 @@
       if (!loaded) {
         alert("No sheet found with that code.");
         currentSheetId = null;
-        localStorage.removeItem("dndActiveSheetIdV26");
+        localStorage.removeItem("dndActiveSheetIdV27");
         document.getElementById("homeScreen").classList.remove("hidden");
         showLoadSheets();
         return;
@@ -2146,7 +2155,7 @@
       localStorage.removeItem(getCollapsedStorageKey(id));
       if (currentSheetId === id) {
         currentSheetId = null;
-        localStorage.removeItem("dndActiveSheetIdV26");
+        localStorage.removeItem("dndActiveSheetIdV27");
       }
       await renderSheetList();
     }
@@ -2159,7 +2168,7 @@
 
       const currentCode = currentSheetId;
       const raw = prompt(
-        "Enter a new sheet code.\\n\\nRules:\\n- 4 to 20 characters\\n- Letters A-Z and numbers 0-9 only\\n- No spaces\\n- Cannot already be used",
+        "Enter a new sheet code.\n\nRules:\n- 4 to 20 characters\n- Letters A-Z and numbers 0-9 only\n- No spaces\n- Cannot already be used",
         currentCode
       );
 
@@ -2207,7 +2216,7 @@
         localStorage.removeItem(getCollapsedStorageKey(currentCode));
 
         currentSheetId = newCode;
-        localStorage.setItem("dndActiveSheetIdV26", currentSheetId);
+        localStorage.setItem("dndActiveSheetIdV27", currentSheetId);
 
         await saveData();
 
@@ -2228,7 +2237,7 @@
       localStorage.removeItem(getSheetStorageKey(id));
       localStorage.removeItem(getCollapsedStorageKey(id));
       currentSheetId = null;
-      localStorage.removeItem("dndActiveSheetIdV26");
+      localStorage.removeItem("dndActiveSheetIdV27");
       clearCurrentForm();
       document.getElementById("homeScreen").classList.remove("hidden");
       showHomeMain();
@@ -2279,7 +2288,7 @@
     }
 
     async function initializeSheetDatabase() {
-      const activeId = localStorage.getItem("dndActiveSheetIdV26");
+      const activeId = localStorage.getItem("dndActiveSheetIdV27");
 
       if (activeId) {
         currentSheetId = activeId;
