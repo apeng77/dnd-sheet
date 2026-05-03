@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>D&D Character Sheet v19</title>
+  <title>D&D Character Sheet v20</title>
   <style>
     :root {
       --bg: #111827;
@@ -775,6 +775,47 @@
     }
 
 
+
+    .auth-screen {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 6000;
+      padding: 24px;
+      overflow-y: auto;
+    }
+
+    .auth-card {
+      max-width: 720px;
+      margin: 60px auto;
+      background: var(--card);
+      border: 1px solid #374151;
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.45);
+      text-align: center;
+    }
+
+    .auth-card h1 { margin-top: 0; }
+
+    .cloud-status {
+      color: #bfdbfe;
+      font-size: 13px;
+      margin-top: 10px;
+      min-height: 18px;
+    }
+
+    .user-pill {
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 999px;
+      padding: 8px 12px;
+      color: #dbeafe;
+      font-size: 13px;
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+
     .home-screen {
       position: fixed;
       inset: 0;
@@ -921,10 +962,22 @@
 </head>
 <body>
 
-  <div class="home-screen" id="homeScreen">
+  
+  <div class="auth-screen" id="authScreen">
+    <div class="auth-card">
+      <h1>D&D Character Sheets</h1>
+      <p class="hint">Sign in with Google to save and load your character sheets from the cloud.</p>
+      <button class="success" onclick="signInWithGoogle()">Sign in with Google</button>
+      <div class="cloud-status" id="authStatus">Not signed in.</div>
+    </div>
+  </div>
+
+  <div class="home-screen hidden" id="homeScreen">
     <div class="home-card">
       <h1 class="home-title">D&D Character Sheets</h1>
-      <p class="hint">Create a new sheet or load a saved sheet from this device.</p>
+      <div class="user-pill" id="userInfo">Signed in</div>
+      <p class="hint">Create a new cloud sheet or load a saved sheet from your Google account.</p>
+      <button class="ghost" onclick="signOutUser()">Sign Out</button>
 
       <div id="homeMain">
         <div class="home-actions">
@@ -965,7 +1018,7 @@
   </div>
 
   <div class="container" id="app">
-    <h1>D&D Character Sheet v19</h1>
+    <h1>D&D Character Sheet v20</h1>
 
     <div class="sheet-top-actions">
       <button class="ghost" onclick="goToSheetHome()">Sheet Home</button>
@@ -1615,7 +1668,28 @@
     </div>
   </div>
 
+
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+
   <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDXzB-rlZiJd14M7MQLip1e50BfzQFVx6A",
+      authDomain: "dnd-character-sheet-ffd50.firebaseapp.com",
+      projectId: "dnd-character-sheet-ffd50",
+      storageBucket: "dnd-character-sheet-ffd50.firebasestorage.app",
+      messagingSenderId: "686017939760",
+      appId: "1:686017939760:web:1da6ca01101c1e1e7ba0f5",
+      measurementId: "G-BJ4BKEQ1Q2"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    let currentUser = null;
+    let cloudReady = false;
+
     const abilities = ["str", "dex", "con", "int", "wis", "cha"];
     let attacks = [];
     let spells = [];
@@ -1907,24 +1981,65 @@
     }
 
 
-    function getSheetIndex() {
-      return JSON.parse(localStorage.getItem("dndSheetIndexV19") || "[]");
-    }
-
-    function saveSheetIndex(index) {
-      localStorage.setItem("dndSheetIndexV19", JSON.stringify(index));
-    }
-
     function getSheetStorageKey(id) {
-      return "dndCharacterSheetV19_" + id;
+      return "dndCharacterSheetV20_" + id;
     }
 
     function getCollapsedStorageKey(id) {
-      return "dndSheetV19Collapsed_" + id;
+      return "dndSheetV20Collapsed_" + id;
     }
 
-    function generateSheetId() {
-      return "sheet_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+    function getUserSheetsCollection() {
+      if (!currentUser) return null;
+      return db.collection("users").doc(currentUser.uid).collection("sheets");
+    }
+
+    function setCloudStatus(message) {
+      const authStatus = document.getElementById("authStatus");
+      if (authStatus) authStatus.textContent = message;
+    }
+
+    async function signInWithGoogle() {
+      try {
+        setCloudStatus("Opening Google sign-in...");
+        const provider = new firebase.auth.GoogleAuthProvider();
+        await auth.signInWithPopup(provider);
+      } catch (error) {
+        console.error(error);
+        setCloudStatus("Sign-in failed: " + error.message);
+        alert("Sign-in failed: " + error.message);
+      }
+    }
+
+    async function signOutUser() {
+      await saveData();
+      await auth.signOut();
+      currentUser = null;
+      cloudReady = false;
+      currentSheetId = null;
+      localStorage.removeItem("dndActiveSheetIdV20");
+      document.getElementById("authScreen").classList.remove("hidden");
+      document.getElementById("homeScreen").classList.add("hidden");
+    }
+
+    function setupAuthListener() {
+      auth.onAuthStateChanged(async user => {
+        currentUser = user;
+
+        if (!user) {
+          cloudReady = false;
+          document.getElementById("authScreen").classList.remove("hidden");
+          document.getElementById("homeScreen").classList.add("hidden");
+          setCloudStatus("Not signed in.");
+          return;
+        }
+
+        cloudReady = true;
+        document.getElementById("authScreen").classList.add("hidden");
+        document.getElementById("homeScreen").classList.remove("hidden");
+        document.getElementById("userInfo").textContent = `Signed in as ${user.displayName || user.email || "Player"}`;
+        await initializeSheetDatabase();
+      });
     }
 
     function showHomeMain() {
@@ -1940,73 +2055,72 @@
       document.getElementById("newSheetName").focus();
     }
 
-    function showLoadSheets() {
+    async function showLoadSheets() {
       document.getElementById("homeMain").classList.add("hidden");
       document.getElementById("createSheetPanel").classList.add("hidden");
       document.getElementById("loadSheetPanel").classList.remove("hidden");
-      renderSheetList();
+      await renderSheetList();
     }
 
-    function goToSheetHome() {
-      saveData();
+    async function goToSheetHome() {
+      await saveData();
       document.getElementById("homeScreen").classList.remove("hidden");
       showHomeMain();
     }
 
-    function createNewSheet() {
+    async function createNewSheet() {
+      if (!currentUser) { alert("Please sign in first."); return; }
       const nameInput = document.getElementById("newSheetName");
       const sheetName = nameInput.value.trim() || "New Character";
-      const id = generateSheetId();
-
-      const index = getSheetIndex();
-      index.push({ id, name: sheetName, updatedAt: new Date().toISOString() });
-      saveSheetIndex(index);
-
-      currentSheetId = id;
-      localStorage.setItem("dndActiveSheetIdV19", currentSheetId);
-
+      const ref = getUserSheetsCollection().doc();
+      currentSheetId = ref.id;
+      localStorage.setItem("dndActiveSheetIdV20", currentSheetId);
       clearCurrentForm();
       document.getElementById("name").value = sheetName;
       nameInput.value = "";
-
-      saveData();
+      await saveData();
       document.getElementById("homeScreen").classList.add("hidden");
       updateStickyBar();
     }
 
-    function renderSheetList() {
+    async function renderSheetList() {
       const list = document.getElementById("sheetList");
-      const index = getSheetIndex();
-      list.innerHTML = "";
-
-      if (!index.length) {
-        list.innerHTML = `<p class="hint">No saved sheets yet.</p>`;
-        return;
+      list.innerHTML = `<p class="hint">Loading cloud sheets...</p>`;
+      if (!currentUser) { list.innerHTML = `<p class="hint">Please sign in first.</p>`; return; }
+      try {
+        const snapshot = await getUserSheetsCollection().orderBy("updatedAt", "desc").get();
+        list.innerHTML = "";
+        if (snapshot.empty) { list.innerHTML = `<p class="hint">No saved sheets yet.</p>`; return; }
+        snapshot.forEach(docSnap => {
+          const sheet = docSnap.data();
+          const id = docSnap.id;
+          const item = document.createElement("div");
+          item.className = "sheet-list-item";
+          const date = sheet.updatedAt?.toDate ? sheet.updatedAt.toDate().toLocaleString() : "Unknown date";
+          item.innerHTML = `
+            <div>
+              <div class="sheet-list-title">${sheet.name || "Unnamed Sheet"}</div>
+              <div class="sheet-list-sub">Last saved: ${date}</div>
+            </div>
+            <div>
+              <button class="mini-button success" onclick="loadSheetById('${id}')">Load</button>
+              <button class="mini-button danger" onclick="deleteSheetFromHome('${id}')">Delete</button>
+            </div>
+          `;
+          list.appendChild(item);
+        });
+      } catch (error) {
+        console.error(error);
+        list.innerHTML = `<p class="hint">Could not load cloud sheets: ${error.message}</p>`;
       }
-
-      index.slice().sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)).forEach(sheet => {
-        const item = document.createElement("div");
-        item.className = "sheet-list-item";
-        const date = sheet.updatedAt ? new Date(sheet.updatedAt).toLocaleString() : "Unknown date";
-        item.innerHTML = `
-          <div>
-            <div class="sheet-list-title">${sheet.name || "Unnamed Sheet"}</div>
-            <div class="sheet-list-sub">Last saved: ${date}</div>
-          </div>
-          <div>
-            <button class="mini-button success" onclick="loadSheetById('${sheet.id}')">Load</button>
-            <button class="mini-button danger" onclick="deleteSheetFromHome('${sheet.id}')">Delete</button>
-          </div>
-        `;
-        list.appendChild(item);
-      });
     }
 
-    function loadSheetById(id) {
+    async function loadSheetById(id) {
+      if (!currentUser) return;
       currentSheetId = id;
-      localStorage.setItem("dndActiveSheetIdV19", currentSheetId);
+      localStorage.setItem("dndActiveSheetIdV20", currentSheetId);
       clearCurrentForm(false);
-      loadData();
+      await loadData();
       loadCollapsedSections();
       updateModifiers();
       updateDeathStatus();
@@ -2015,69 +2129,46 @@
       document.getElementById("homeScreen").classList.add("hidden");
     }
 
-    function deleteSheetFromHome(id) {
-      const confirmDelete = confirm("Delete this saved sheet?");
-      if (!confirmDelete) return;
-
+    async function deleteSheetFromHome(id) {
+      const confirmDelete = confirm("Delete this saved cloud sheet?");
+      if (!confirmDelete || !currentUser) return;
+      await getUserSheetsCollection().doc(id).delete();
       localStorage.removeItem(getSheetStorageKey(id));
       localStorage.removeItem(getCollapsedStorageKey(id));
-
-      const index = getSheetIndex().filter(sheet => sheet.id !== id);
-      saveSheetIndex(index);
-
       if (currentSheetId === id) {
         currentSheetId = null;
-        localStorage.removeItem("dndActiveSheetIdV19");
+        localStorage.removeItem("dndActiveSheetIdV20");
       }
-
-      renderSheetList();
+      await renderSheetList();
     }
 
-    function updateSheetIndexName() {
-      if (!currentSheetId) return;
-      const index = getSheetIndex();
-      const entry = index.find(sheet => sheet.id === currentSheetId);
-      if (!entry) return;
-      entry.name = document.getElementById("name").value || "Unnamed Character";
-      entry.updatedAt = new Date().toISOString();
-      saveSheetIndex(index);
-    }
-
-    function duplicateCurrentSheet() {
-      if (!currentSheetId) return;
-      saveData();
-
-      const oldData = localStorage.getItem(getSheetStorageKey(currentSheetId));
-      if (!oldData) return;
-
-      const newId = generateSheetId();
+    async function duplicateCurrentSheet() {
+      if (!currentSheetId || !currentUser) return;
+      await saveData();
+      const oldDoc = await getUserSheetsCollection().doc(currentSheetId).get();
+      if (!oldDoc.exists) return;
+      const oldData = oldDoc.data();
+      const newRef = getUserSheetsCollection().doc();
       const oldName = document.getElementById("name").value || "Unnamed Character";
       const newName = oldName + " Copy";
-
-      localStorage.setItem(getSheetStorageKey(newId), oldData);
-
-      const index = getSheetIndex();
-      index.push({ id: newId, name: newName, updatedAt: new Date().toISOString() });
-      saveSheetIndex(index);
-
-      currentSheetId = newId;
-      localStorage.setItem("dndActiveSheetIdV19", currentSheetId);
+      await newRef.set({ ...oldData, name: newName, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      currentSheetId = newRef.id;
+      localStorage.setItem("dndActiveSheetIdV20", currentSheetId);
       document.getElementById("name").value = newName;
-      saveData();
-      showDicePop("Sheet duplicated.");
+      await saveData();
+      showDicePop("Cloud sheet duplicated.");
     }
 
-    function deleteCurrentSheet() {
-      if (!currentSheetId) return;
-      const confirmDelete = confirm("Delete the current sheet?");
+    async function deleteCurrentSheet() {
+      if (!currentSheetId || !currentUser) return;
+      const confirmDelete = confirm("Delete the current cloud sheet?");
       if (!confirmDelete) return;
-
       const id = currentSheetId;
+      await getUserSheetsCollection().doc(id).delete();
       localStorage.removeItem(getSheetStorageKey(id));
       localStorage.removeItem(getCollapsedStorageKey(id));
-      saveSheetIndex(getSheetIndex().filter(sheet => sheet.id !== id));
       currentSheetId = null;
-      localStorage.removeItem("dndActiveSheetIdV19");
+      localStorage.removeItem("dndActiveSheetIdV20");
       clearCurrentForm();
       document.getElementById("homeScreen").classList.remove("hidden");
       showHomeMain();
@@ -2094,9 +2185,7 @@
         }
       });
 
-      document.querySelectorAll("select").forEach(el => {
-        el.selectedIndex = 0;
-      });
+      document.querySelectorAll("select").forEach(el => { el.selectedIndex = 0; });
 
       if (resetDefaults) {
         document.getElementById("level").value = 1;
@@ -2107,10 +2196,7 @@
         document.getElementById("hitDiceAvailable").value = 1;
         document.getElementById("damageAmount").value = 0;
         document.getElementById("healAmount").value = 0;
-        abilities.forEach(ability => {
-          const input = document.getElementById(ability);
-          if (input) input.value = 10;
-        });
+        abilities.forEach(ability => { const input = document.getElementById(ability); if (input) input.value = 10; });
       }
 
       attacks = [];
@@ -2118,10 +2204,8 @@
       inventoryItems = [];
       classFeatures = [];
       turnState = { Action: false, Bonus: false, Reaction: false, Movement: false };
-
       document.querySelectorAll(".condition").forEach(el => el.classList.remove("active"));
       clearDeathSaves();
-
       renderAttacks();
       renderSpells();
       renderInventory();
@@ -2130,20 +2214,20 @@
       updateModifiers();
     }
 
-    function initializeSheetDatabase() {
-      const index = getSheetIndex();
-      const activeId = localStorage.getItem("dndActiveSheetIdV19");
-
-      if (activeId && index.some(sheet => sheet.id === activeId)) {
-        currentSheetId = activeId;
-        loadData();
-        document.getElementById("homeScreen").classList.add("hidden");
-      } else {
-        document.getElementById("homeScreen").classList.remove("hidden");
-        showHomeMain();
+    async function initializeSheetDatabase() {
+      const activeId = localStorage.getItem("dndActiveSheetIdV20");
+      if (activeId && currentUser) {
+        const docSnap = await getUserSheetsCollection().doc(activeId).get();
+        if (docSnap.exists) {
+          currentSheetId = activeId;
+          await loadData();
+          document.getElementById("homeScreen").classList.add("hidden");
+          return;
+        }
       }
+      document.getElementById("homeScreen").classList.remove("hidden");
+      showHomeMain();
     }
-
 
     function createCalculatedRows() {
       const savesContainer = document.getElementById("savingThrowsList");
@@ -3487,10 +3571,6 @@
       const confirmReset = confirm("Are you sure you want to reset this character sheet?");
       if (!confirmReset) return;
 
-      if (currentSheetId) {
-        localStorage.removeItem(getSheetStorageKey(currentSheetId));
-        localStorage.removeItem(getCollapsedStorageKey(currentSheetId));
-      }
       clearCurrentForm();
       saveData();
     }
@@ -3503,7 +3583,7 @@
       return [...basicFields, ...saveIds, ...skillIds, ...conditionIds, ...spellIds];
     }
 
-    function saveData() {
+    async function saveData() {
       const data = {};
       const fields = getAllFieldIds();
 
@@ -3534,15 +3614,43 @@
 
       if (!currentSheetId) return;
       localStorage.setItem(getSheetStorageKey(currentSheetId), JSON.stringify(data));
-      updateSheetIndexName();
+
+      if (currentUser && cloudReady) {
+        try {
+          await getUserSheetsCollection().doc(currentSheetId).set({
+            name: document.getElementById("name").value || "Unnamed Character",
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            data
+          }, { merge: true });
+        } catch (error) {
+          console.error("Cloud save failed:", error);
+          showDicePop("Cloud save failed. Local backup saved.");
+        }
+      }
+
       updateStickyBar();
     }
 
-    function loadData() {
-      const saved = currentSheetId ? localStorage.getItem(getSheetStorageKey(currentSheetId)) : null;
-      if (!saved) return;
+    async function loadData() {
+      let data = null;
 
-      const data = JSON.parse(saved);
+      if (currentUser && cloudReady && currentSheetId) {
+        try {
+          const docSnap = await getUserSheetsCollection().doc(currentSheetId).get();
+          if (docSnap.exists && docSnap.data().data) {
+            data = docSnap.data().data;
+            localStorage.setItem(getSheetStorageKey(currentSheetId), JSON.stringify(data));
+          }
+        } catch (error) {
+          console.error("Cloud load failed:", error);
+        }
+      }
+
+      if (!data) {
+        const saved = currentSheetId ? localStorage.getItem(getSheetStorageKey(currentSheetId)) : null;
+        if (!saved) return;
+        data = JSON.parse(saved);
+      }
       const fields = getAllFieldIds();
 
       fields.forEach(id => {
@@ -3695,7 +3803,7 @@
     createConditionButtons();
     createSpellSlots();
     setupAttackBuilderOptions();
-    initializeSheetDatabase();
+    setupAuthListener();
     renderSpells();
     renderInventory();
     renderFeatures();
