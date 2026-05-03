@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>D&D Character Sheet v25</title>
+  <title>D&D Character Sheet v26</title>
   <style>
     :root {
       --bg: #111827;
@@ -1010,13 +1010,13 @@
   </div>
 
   <div class="container" id="app">
-    <h1>D&D Character Sheet v25</h1>
+    <h1>D&D Character Sheet v26</h1>
 
     <div class="sheet-top-actions">
       <button class="ghost" onclick="goToSheetHome()">Sheet Home</button>
       <button class="purple" onclick="copySheetCode()">Copy Sheet Code</button>
       <button class="success" onclick="saveData()">Save Current Sheet</button>
-      <button class="purple" onclick="duplicateCurrentSheet()">Duplicate Sheet</button>
+      <button class="purple" onclick="editSheetCode()">Edit Sheet Code</button>
       <button class="danger" onclick="deleteCurrentSheet()">Delete Sheet</button>
     </div>
 
@@ -1968,11 +1968,11 @@
 
 
     function getSheetStorageKey(id) {
-      return "dndCharacterSheetV25_" + id;
+      return "dndCharacterSheetV26_" + id;
     }
 
     function getCollapsedStorageKey(id) {
-      return "dndSheetV25Collapsed_" + id;
+      return "dndSheetV26Collapsed_" + id;
     }
 
     function getUserSheetsCollection() {
@@ -2047,23 +2047,29 @@
 
     async function loadSheetFromCode() {
       const input = document.getElementById("loadSheetCode");
-      const code = input.value.trim().toUpperCase();
+      const code = normalizeSheetCode(input.value);
 
       if (!code) {
         alert("Enter a sheet code.");
         return;
       }
 
+      if (!validateSheetCode(code)) {
+        alert("Sheet codes must be 4–20 characters and use only letters A-Z and numbers 0-9.");
+        return;
+      }
+
+      input.value = code;
       loadSheetById(code);
     }
 
     async function createNewSheet() {
       const nameInput = document.getElementById("newSheetName");
       const sheetName = nameInput.value.trim() || "New Character";
-      const code = generateSheetCode();
+      const code = await generateUniqueSheetCode();
 
       currentSheetId = code;
-      localStorage.setItem("dndActiveSheetIdV25", currentSheetId);
+      localStorage.setItem("dndActiveSheetIdV26", currentSheetId);
 
       suppressAutoSave = true;
       clearCurrentForm();
@@ -2089,15 +2095,20 @@
     }
 
     async function loadSheetById(id) {
-      const code = String(id || "").trim().toUpperCase();
+      const code = normalizeSheetCode(id);
 
       if (!code) {
         alert("Enter a sheet code.");
         return;
       }
 
+      if (!validateSheetCode(code)) {
+        alert("Sheet codes must be 4–20 characters and use only letters A-Z and numbers 0-9.");
+        return;
+      }
+
       currentSheetId = code;
-      localStorage.setItem("dndActiveSheetIdV25", currentSheetId);
+      localStorage.setItem("dndActiveSheetIdV26", currentSheetId);
 
       suppressAutoSave = true;
       clearCurrentForm(false);
@@ -2108,7 +2119,7 @@
       if (!loaded) {
         alert("No sheet found with that code.");
         currentSheetId = null;
-        localStorage.removeItem("dndActiveSheetIdV25");
+        localStorage.removeItem("dndActiveSheetIdV26");
         document.getElementById("homeScreen").classList.remove("hidden");
         showLoadSheets();
         return;
@@ -2135,26 +2146,77 @@
       localStorage.removeItem(getCollapsedStorageKey(id));
       if (currentSheetId === id) {
         currentSheetId = null;
-        localStorage.removeItem("dndActiveSheetIdV25");
+        localStorage.removeItem("dndActiveSheetIdV26");
       }
       await renderSheetList();
     }
 
-    async function duplicateCurrentSheet() {
-      if (!currentSheetId) return;
-      await saveData();
-      const oldDoc = await getUserSheetsCollection().doc(currentSheetId).get();
-      if (!oldDoc.exists) return;
-      const oldData = oldDoc.data();
-      const newRef = getUserSheetsCollection().doc();
-      const oldName = document.getElementById("name").value || "Unnamed Character";
-      const newName = oldName + " Copy";
-      await newRef.set({ ...oldData, name: newName, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-      currentSheetId = newRef.id;
-      localStorage.setItem("dndActiveSheetIdV25", currentSheetId);
-      document.getElementById("name").value = newName;
-      await saveData();
-      showDicePop("Cloud sheet duplicated.");
+    async function editSheetCode() {
+      if (!currentSheetId) {
+        alert("Open or create a sheet first.");
+        return;
+      }
+
+      const currentCode = currentSheetId;
+      const raw = prompt(
+        "Enter a new sheet code.\\n\\nRules:\\n- 4 to 20 characters\\n- Letters A-Z and numbers 0-9 only\\n- No spaces\\n- Cannot already be used",
+        currentCode
+      );
+
+      if (raw === null) return;
+
+      const newCode = normalizeSheetCode(raw);
+
+      if (!validateSheetCode(newCode)) {
+        alert("Invalid code. Use 4–20 characters, letters A-Z and numbers 0-9 only.");
+        return;
+      }
+
+      if (newCode === currentCode) {
+        showDicePop("Sheet code unchanged.");
+        return;
+      }
+
+      try {
+        const newRef = getUserSheetsCollection().doc(newCode);
+        const existing = await newRef.get();
+
+        if (existing.exists) {
+          alert("That sheet code is already taken. Try another one.");
+          return;
+        }
+
+        await saveData();
+
+        const oldRef = getUserSheetsCollection().doc(currentCode);
+        const oldDoc = await oldRef.get();
+
+        if (!oldDoc.exists) {
+          alert("Could not find the current sheet in the cloud.");
+          return;
+        }
+
+        await newRef.set({
+          ...oldDoc.data(),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        await oldRef.delete();
+
+        localStorage.removeItem(getSheetStorageKey(currentCode));
+        localStorage.removeItem(getCollapsedStorageKey(currentCode));
+
+        currentSheetId = newCode;
+        localStorage.setItem("dndActiveSheetIdV26", currentSheetId);
+
+        await saveData();
+
+        showDicePop("Sheet code changed.");
+        alert("New sheet code: " + currentSheetId);
+      } catch (error) {
+        console.error(error);
+        alert("Could not change sheet code: " + error.message);
+      }
     }
 
     async function deleteCurrentSheet() {
@@ -2166,7 +2228,7 @@
       localStorage.removeItem(getSheetStorageKey(id));
       localStorage.removeItem(getCollapsedStorageKey(id));
       currentSheetId = null;
-      localStorage.removeItem("dndActiveSheetIdV25");
+      localStorage.removeItem("dndActiveSheetIdV26");
       clearCurrentForm();
       document.getElementById("homeScreen").classList.remove("hidden");
       showHomeMain();
@@ -2217,7 +2279,7 @@
     }
 
     async function initializeSheetDatabase() {
-      const activeId = localStorage.getItem("dndActiveSheetIdV25");
+      const activeId = localStorage.getItem("dndActiveSheetIdV26");
 
       if (activeId) {
         currentSheetId = activeId;
