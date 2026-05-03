@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>D&D Character Sheet v23</title>
+  <title>D&D Character Sheet v24</title>
   <style>
     :root {
       --bg: #111827;
@@ -1010,7 +1010,7 @@
   </div>
 
   <div class="container" id="app">
-    <h1>D&D Character Sheet v23</h1>
+    <h1>D&D Character Sheet v24</h1>
 
     <div class="sheet-top-actions">
       <button class="ghost" onclick="goToSheetHome()">Sheet Home</button>
@@ -1637,11 +1637,6 @@
       </div>
     </div>
 
-    <div class="card">
-      <button onclick="saveData()" class="success">Save Sheet</button>
-      <button onclick="resetSheet()" class="danger">Reset Sheet</button>
-    </div>
-
     <div class="bottom-nav">
       <div class="bottom-nav-inner">
         <button class="nav-btn" onclick="jumpToSection('turnTracker')">⏱️<br>Turn</button>
@@ -1973,11 +1968,11 @@
 
 
     function getSheetStorageKey(id) {
-      return "dndCharacterSheetV23_" + id;
+      return "dndCharacterSheetV24_" + id;
     }
 
     function getCollapsedStorageKey(id) {
-      return "dndSheetV23Collapsed_" + id;
+      return "dndSheetV24Collapsed_" + id;
     }
 
     function getUserSheetsCollection() {
@@ -1986,13 +1981,31 @@
 
     function copySheetCode() {
       if (!currentSheetId) {
-        alert("No sheet is currently open.");
+        showDicePop("No sheet is currently open.");
         return;
       }
 
-      navigator.clipboard?.writeText(currentSheetId);
-      showDicePop("Sheet code copied.");
-      alert("Sheet code: " + currentSheetId);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(currentSheetId)
+          .then(() => showDicePop("Sheet code copied."))
+          .catch(() => {
+            const temp = document.createElement("textarea");
+            temp.value = currentSheetId;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand("copy");
+            temp.remove();
+            showDicePop("Sheet code copied.");
+          });
+      } else {
+        const temp = document.createElement("textarea");
+        temp.value = currentSheetId;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand("copy");
+        temp.remove();
+        showDicePop("Sheet code copied.");
+      }
     }
 
     function setupAuthListener() {
@@ -2034,8 +2047,10 @@
       return code;
     }
 
-    async function loadSheetFromCode() {
-      const code = document.getElementById("loadSheetCode").value.trim().toUpperCase();
+    async async function loadSheetFromCode() {
+      const input = document.getElementById("loadSheetCode");
+      const code = input.value.trim().toUpperCase();
+
       if (!code) {
         alert("Enter a sheet code.");
         return;
@@ -2050,7 +2065,7 @@
       const code = generateSheetCode();
 
       currentSheetId = code;
-      localStorage.setItem("dndActiveSheetIdV23", currentSheetId);
+      localStorage.setItem("dndActiveSheetIdV24", currentSheetId);
 
       suppressAutoSave = true;
       clearCurrentForm();
@@ -2076,19 +2091,27 @@
     }
 
     async function loadSheetById(id) {
-      if (!currentUser) return;
-      currentSheetId = id;
-      localStorage.setItem("dndActiveSheetIdV23", currentSheetId);
+      const code = String(id || "").trim().toUpperCase();
+      if (!code) {
+        alert("Enter a sheet code.");
+        return;
+      }
+
+      currentSheetId = code;
+      localStorage.setItem("dndActiveSheetIdV24", currentSheetId);
 
       suppressAutoSave = true;
       clearCurrentForm(false);
       suppressAutoSave = false;
 
       const loaded = await loadData();
+
       if (!loaded) {
         alert("No sheet found with that code.");
         currentSheetId = null;
-        localStorage.removeItem("dndActiveSheetIdV23");
+        localStorage.removeItem("dndActiveSheetIdV24");
+        document.getElementById("homeScreen").classList.remove("hidden");
+        showLoadSheets();
         return;
       }
 
@@ -2097,8 +2120,12 @@
       updateStickyBar();
       updateDeathStatus();
       renderTurnTracker();
-      document.getElementById("app").classList.toggle("combat-mode", document.getElementById("combatMode").checked);
+
+      const combatToggle = document.getElementById("combatMode");
+      document.getElementById("app").classList.toggle("combat-mode", combatToggle && combatToggle.checked);
+
       document.getElementById("homeScreen").classList.add("hidden");
+      showDicePop("Sheet loaded.");
     }
 
     async function deleteSheetFromHome(id) {
@@ -2109,7 +2136,7 @@
       localStorage.removeItem(getCollapsedStorageKey(id));
       if (currentSheetId === id) {
         currentSheetId = null;
-        localStorage.removeItem("dndActiveSheetIdV23");
+        localStorage.removeItem("dndActiveSheetIdV24");
       }
       await renderSheetList();
     }
@@ -2125,7 +2152,7 @@
       const newName = oldName + " Copy";
       await newRef.set({ ...oldData, name: newName, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
       currentSheetId = newRef.id;
-      localStorage.setItem("dndActiveSheetIdV23", currentSheetId);
+      localStorage.setItem("dndActiveSheetIdV24", currentSheetId);
       document.getElementById("name").value = newName;
       await saveData();
       showDicePop("Cloud sheet duplicated.");
@@ -2140,7 +2167,7 @@
       localStorage.removeItem(getSheetStorageKey(id));
       localStorage.removeItem(getCollapsedStorageKey(id));
       currentSheetId = null;
-      localStorage.removeItem("dndActiveSheetIdV23");
+      localStorage.removeItem("dndActiveSheetIdV24");
       clearCurrentForm();
       document.getElementById("homeScreen").classList.remove("hidden");
       showHomeMain();
@@ -2191,7 +2218,7 @@
     }
 
     async function initializeSheetDatabase() {
-      const activeId = localStorage.getItem("dndActiveSheetIdV23");
+      const activeId = localStorage.getItem("dndActiveSheetIdV24");
 
       if (activeId) {
         currentSheetId = activeId;
@@ -3613,20 +3640,19 @@
 
     async function loadData() {
       let data = null;
-      let cloudMeta = null;
 
       suppressAutoSave = true;
 
       if (cloudReady && currentSheetId) {
         try {
           const docSnap = await getUserSheetsCollection().doc(currentSheetId).get();
+
           if (docSnap.exists) {
-            cloudMeta = docSnap.data();
+            const cloudMeta = docSnap.data();
 
             if (cloudMeta.data) {
               data = cloudMeta.data;
             } else {
-              // Legacy/fallback support if a sheet document was saved without the nested data object.
               data = { ...cloudMeta };
               delete data.updatedAt;
             }
@@ -3648,7 +3674,13 @@
           suppressAutoSave = false;
           return false;
         }
-        data = JSON.parse(saved);
+
+        try {
+          data = JSON.parse(saved);
+        } catch (error) {
+          suppressAutoSave = false;
+          return false;
+        }
       }
 
       const fields = getAllFieldIds();
@@ -3674,10 +3706,12 @@
       inventoryItems = Array.isArray(data.inventoryItems) ? data.inventoryItems : [];
       classFeatures = Array.isArray(data.classFeatures) ? data.classFeatures : [];
       turnState = data.turnState || { Action: false, Bonus: false, Reaction: false, Movement: false };
+
       renderAttacks();
       renderSpells();
       renderInventory();
       renderFeatures();
+      renderTurnTracker();
 
       updateSpellSlots();
 
