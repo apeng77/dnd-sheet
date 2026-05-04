@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>D&D Character Sheet v29</title>
+  <title>D&D Character Sheet v30</title>
   <style>
     :root {
       --bg: #111827;
@@ -898,22 +898,6 @@
       display: none !important;
     }
 
-
-    .inline-error {
-      background: #450a0a;
-      border: 1px solid #ef4444;
-      color: #fecaca;
-      border-radius: 10px;
-      padding: 10px;
-      margin-top: 10px;
-      display: none;
-      font-size: 14px;
-    }
-
-    .inline-error.show {
-      display: block;
-    }
-
     .footer {
       text-align: center;
       color: var(--hint);
@@ -1006,7 +990,6 @@
         <h2>Load Sheet</h2>
         <label>Sheet Code</label>
         <input id="loadSheetCode" placeholder="Paste sheet code here">
-        <div class="inline-error" id="loadSheetError"></div>
         <div class="home-actions">
           <button class="success" onclick="loadSheetFromCode()">Load Sheet</button>
           <button class="ghost" onclick="showHomeMain()">Back</button>
@@ -1027,7 +1010,7 @@
   </div>
 
   <div class="container" id="app">
-    <h1>D&D Character Sheet v29</h1>
+    <h1>D&D Character Sheet v30</h1>
 
     <div class="sheet-top-actions">
       <button class="ghost" onclick="goToSheetHome()">Sheet Home</button>
@@ -1986,11 +1969,11 @@
 
 
     function getSheetStorageKey(id) {
-      return "dndCharacterSheetV29_" + id;
+      return "dndCharacterSheetV30_" + id;
     }
 
     function getCollapsedStorageKey(id) {
-      return "dndSheetV29Collapsed_" + id;
+      return "dndSheetV30Collapsed_" + id;
     }
 
     function getUserSheetsCollection() {
@@ -2075,15 +2058,14 @@
     async function loadSheetFromCode() {
       const input = document.getElementById("loadSheetCode");
       const code = normalizeSheetCode(input.value);
-      clearLoadSheetError();
 
       if (!code) {
-        showLoadSheetError("Enter a sheet code first.");
+        alert("Enter a sheet code.");
         return;
       }
 
       if (!validateSheetCode(code)) {
-        showLoadSheetError("Sheet codes must be 4-20 characters and use only letters A-Z and numbers 0-9.");
+        alert("Sheet codes must be 4–20 characters and use only letters A-Z and numbers 0-9.");
         return;
       }
 
@@ -2097,7 +2079,7 @@
       const code = generateSheetCode();
 
       currentSheetId = code;
-      localStorage.setItem("dndActiveSheetIdV29", currentSheetId);
+      localStorage.setItem("dndActiveSheetIdV30", currentSheetId);
 
       suppressAutoSave = true;
       clearCurrentForm();
@@ -2126,17 +2108,17 @@
       const code = normalizeSheetCode(id);
 
       if (!code) {
-        showLoadSheetError("Enter a sheet code first.");
+        alert("Enter a sheet code.");
         return;
       }
 
       if (!validateSheetCode(code)) {
-        showLoadSheetError("Sheet codes must be 4-20 characters and use only letters A-Z and numbers 0-9.");
+        alert("Sheet codes must be 4–20 characters and use only letters A-Z and numbers 0-9.");
         return;
       }
 
       currentSheetId = code;
-      localStorage.setItem("dndActiveSheetIdV29", currentSheetId);
+      localStorage.setItem("dndActiveSheetIdV30", currentSheetId);
 
       suppressAutoSave = true;
       clearCurrentForm(false);
@@ -2145,13 +2127,11 @@
       const loaded = await loadData();
 
       if (!loaded) {
-        showLoadSheetError("No sheet found with that code. Check the code and try again.");
+        alert("No sheet found with that code.");
         currentSheetId = null;
-        localStorage.removeItem("dndActiveSheetIdV29");
+        localStorage.removeItem("dndActiveSheetIdV30");
         document.getElementById("homeScreen").classList.remove("hidden");
-        document.getElementById("loadSheetPanel").classList.remove("hidden");
-        document.getElementById("homeMain").classList.add("hidden");
-        document.getElementById("createSheetPanel").classList.add("hidden");
+        showLoadSheets();
         return;
       }
 
@@ -2165,7 +2145,6 @@
       document.getElementById("app").classList.toggle("combat-mode", combatToggle && combatToggle.checked);
 
       document.getElementById("homeScreen").classList.add("hidden");
-      clearLoadSheetError();
       showDicePop("Sheet loaded.");
     }
 
@@ -2177,7 +2156,7 @@
       localStorage.removeItem(getCollapsedStorageKey(id));
       if (currentSheetId === id) {
         currentSheetId = null;
-        localStorage.removeItem("dndActiveSheetIdV29");
+        localStorage.removeItem("dndActiveSheetIdV30");
       }
       await renderSheetList();
     }
@@ -2238,7 +2217,7 @@
         localStorage.removeItem(getCollapsedStorageKey(currentCode));
 
         currentSheetId = newCode;
-        localStorage.setItem("dndActiveSheetIdV29", currentSheetId);
+        localStorage.setItem("dndActiveSheetIdV30", currentSheetId);
 
         await saveData();
 
@@ -2259,7 +2238,7 @@
       localStorage.removeItem(getSheetStorageKey(id));
       localStorage.removeItem(getCollapsedStorageKey(id));
       currentSheetId = null;
-      localStorage.removeItem("dndActiveSheetIdV29");
+      localStorage.removeItem("dndActiveSheetIdV30");
       clearCurrentForm();
       document.getElementById("homeScreen").classList.remove("hidden");
       showHomeMain();
@@ -2310,7 +2289,7 @@
     }
 
     async function initializeSheetDatabase() {
-      const activeId = localStorage.getItem("dndActiveSheetIdV29");
+      const activeId = localStorage.getItem("dndActiveSheetIdV30");
 
       if (activeId) {
         currentSheetId = activeId;
