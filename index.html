@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>D&D Character Sheet v28</title>
+  <title>D&D Character Sheet v29</title>
   <style>
     :root {
       --bg: #111827;
@@ -914,12 +914,6 @@
       display: block;
     }
 
-    .export-note {
-      color: var(--hint);
-      font-size: 12px;
-      margin-top: 4px;
-    }
-
     .footer {
       text-align: center;
       color: var(--hint);
@@ -1033,14 +1027,14 @@
   </div>
 
   <div class="container" id="app">
-    <h1>D&D Character Sheet v28</h1>
+    <h1>D&D Character Sheet v29</h1>
 
     <div class="sheet-top-actions">
       <button class="ghost" onclick="goToSheetHome()">Sheet Home</button>
       <button class="purple" onclick="copySheetCode()">Copy Sheet Code</button>
       <button class="success" onclick="saveData()">Save Current Sheet</button>
       <button class="purple" onclick="editSheetCode()">Edit Sheet Code</button>
-      <button class="success" onclick="exportPrintableSheet()">Export / Print PDF</button>
+      <button class="success" onclick="exportPrintableSheet()">Export PDF</button>
       <button class="danger" onclick="deleteCurrentSheet()">Delete Sheet</button>
     </div>
 
@@ -1992,11 +1986,11 @@
 
 
     function getSheetStorageKey(id) {
-      return "dndCharacterSheetV28_" + id;
+      return "dndCharacterSheetV29_" + id;
     }
 
     function getCollapsedStorageKey(id) {
-      return "dndSheetV28Collapsed_" + id;
+      return "dndSheetV29Collapsed_" + id;
     }
 
     function getUserSheetsCollection() {
@@ -2103,7 +2097,7 @@
       const code = generateSheetCode();
 
       currentSheetId = code;
-      localStorage.setItem("dndActiveSheetIdV28", currentSheetId);
+      localStorage.setItem("dndActiveSheetIdV29", currentSheetId);
 
       suppressAutoSave = true;
       clearCurrentForm();
@@ -2142,7 +2136,7 @@
       }
 
       currentSheetId = code;
-      localStorage.setItem("dndActiveSheetIdV28", currentSheetId);
+      localStorage.setItem("dndActiveSheetIdV29", currentSheetId);
 
       suppressAutoSave = true;
       clearCurrentForm(false);
@@ -2153,8 +2147,11 @@
       if (!loaded) {
         showLoadSheetError("No sheet found with that code. Check the code and try again.");
         currentSheetId = null;
-        localStorage.removeItem("dndActiveSheetIdV28");
+        localStorage.removeItem("dndActiveSheetIdV29");
         document.getElementById("homeScreen").classList.remove("hidden");
+        document.getElementById("loadSheetPanel").classList.remove("hidden");
+        document.getElementById("homeMain").classList.add("hidden");
+        document.getElementById("createSheetPanel").classList.add("hidden");
         return;
       }
 
@@ -2180,7 +2177,7 @@
       localStorage.removeItem(getCollapsedStorageKey(id));
       if (currentSheetId === id) {
         currentSheetId = null;
-        localStorage.removeItem("dndActiveSheetIdV28");
+        localStorage.removeItem("dndActiveSheetIdV29");
       }
       await renderSheetList();
     }
@@ -2241,7 +2238,7 @@
         localStorage.removeItem(getCollapsedStorageKey(currentCode));
 
         currentSheetId = newCode;
-        localStorage.setItem("dndActiveSheetIdV28", currentSheetId);
+        localStorage.setItem("dndActiveSheetIdV29", currentSheetId);
 
         await saveData();
 
@@ -2262,7 +2259,7 @@
       localStorage.removeItem(getSheetStorageKey(id));
       localStorage.removeItem(getCollapsedStorageKey(id));
       currentSheetId = null;
-      localStorage.removeItem("dndActiveSheetIdV28");
+      localStorage.removeItem("dndActiveSheetIdV29");
       clearCurrentForm();
       document.getElementById("homeScreen").classList.remove("hidden");
       showHomeMain();
@@ -2313,7 +2310,7 @@
     }
 
     async function initializeSheetDatabase() {
-      const activeId = localStorage.getItem("dndActiveSheetIdV28");
+      const activeId = localStorage.getItem("dndActiveSheetIdV29");
 
       if (activeId) {
         currentSheetId = activeId;
@@ -3687,15 +3684,6 @@
       return active.length ? active.join(", ") : "None";
     }
 
-    function getExportSection(title, content) {
-      return `
-        <section>
-          <h2>${escapeHtml(title)}</h2>
-          ${content || "<p>None</p>"}
-        </section>
-      `;
-    }
-
     function exportPrintableSheet() {
       saveData();
 
@@ -3705,42 +3693,76 @@
       const charClass = getFieldValue("class", "");
       const level = getFieldValue("level", "1");
       const background = getFieldValue("background", "");
+      const sheetCode = currentSheetId || "Not saved";
 
-      const abilityRows = abilities.map(ability => {
+      const abilityCards = abilities.map(ability => {
         const score = getFieldValue(ability, "10");
         const mod = formatBonus(getAbilityMod(ability));
-        return `<tr><td>${ability.toUpperCase()}</td><td>${score}</td><td>${mod}</td></tr>`;
+        return `<div class="ability-card"><span>${ability.toUpperCase()}</span><strong>${score}</strong><em>${mod}</em></div>`;
       }).join("");
 
-      const attackRows = attacks.length ? attacks.map(attack => {
+      const saveRows = savingThrows.map(save => {
+        const base = getAbilityMod(save.ability);
+        const proficient = document.getElementById(save.id)?.checked || false;
+        const total = base + (proficient ? getProfBonus() : 0);
+        return `<tr><td>${escapeHtml(save.name)}</td><td>${proficient ? "✓" : ""}</td><td>${formatBonus(total)}</td></tr>`;
+      }).join("");
+
+      const skillRows = skills.map(skill => {
+        const prof = document.getElementById(skill.id + "_prof")?.checked || false;
+        const expertise = document.getElementById(skill.id + "_expertise")?.checked || false;
+        return `<tr><td>${escapeHtml(skill.name)}</td><td>${expertise ? "Expertise" : prof ? "Proficient" : ""}</td><td>${formatBonus(getSkillTotal(skill.id))}</td></tr>`;
+      }).join("");
+
+      const attackCards = attacks.length ? attacks.map(attack => {
         const actualAbility = attack.smartAbility ? chooseSmartAttackAbility(weaponData[attack.weapon]?.ability || attack.ability) : attack.ability;
         const abilityMod = getAbilityMod(actualAbility);
         const hitBonus = abilityMod + (attack.proficient ? getProfBonus() : 0) + (attack.hitMisc || 0);
         const dmgBonus = abilityMod + (attack.dmgMisc || 0);
         const dmgText = `${attack.dice || ""}${dmgBonus === 0 ? "" : formatBonus(dmgBonus)} ${attack.type || ""}`;
-        return `<tr><td>${escapeHtml(attack.name)}</td><td>${formatBonus(hitBonus)}</td><td>${escapeHtml(dmgText)}</td><td>${escapeHtml(attack.mastery || "None")}</td></tr>`;
-      }).join("") : "";
+        return `
+          <div class="item-card">
+            <div class="item-title">${escapeHtml(attack.name)}</div>
+            <div class="item-meta">Hit ${formatBonus(hitBonus)} • ${escapeHtml(dmgText)} • ${escapeHtml(attack.mastery || "No mastery")}</div>
+            <p>${escapeHtml((attack.properties || []).join(", "))}</p>
+          </div>`;
+      }).join("") : `<p class="empty">No attacks added.</p>`;
 
-      const spellRows = spells.length ? spells.map(spell => {
+      const spellCards = spells.length ? spells.map(spell => {
         const details = [
+          spell.level === "Cantrip" ? "Cantrip" : `Level ${spell.level}`,
           spell.kind || "",
           spell.concentration ? "Concentration" : "",
-          spell.duration ? "Duration: " + spell.duration : "",
-          spell.dice ? "Damage: " + spell.dice + " " + (spell.type || "") : ""
-        ].filter(Boolean).join(" | ");
-        return `<tr><td>${escapeHtml(spell.name)}</td><td>${escapeHtml(spell.level)}</td><td>${escapeHtml(details)}</td><td>${escapeHtml(spell.notes || "")}</td></tr>`;
-      }).join("") : "";
+          spell.duration ? `Duration: ${spell.duration}` : "",
+          spell.dice ? `${spell.dice} ${spell.type || ""}` : ""
+        ].filter(Boolean).join(" • ");
+        return `
+          <div class="item-card">
+            <div class="item-title">${escapeHtml(spell.name)}</div>
+            <div class="item-meta">${escapeHtml(details)}</div>
+            <p>${escapeHtml(spell.notes || "")}</p>
+          </div>`;
+      }).join("") : `<p class="empty">No spells added.</p>`;
 
-      const featureRows = classFeatures.length ? classFeatures.map(feature => {
+      const featureCards = classFeatures.length ? classFeatures.map(feature => {
         const uses = feature.maxUses > 0 ? `${feature.used || 0}/${feature.maxUses}` : "Passive";
-        return `<tr><td>${escapeHtml(feature.name)}</td><td>${escapeHtml(feature.action)}</td><td>${escapeHtml(uses)}</td><td>${escapeHtml(feature.reset)}</td><td>${escapeHtml(feature.description || "")}</td></tr>`;
-      }).join("") : "";
+        return `
+          <div class="item-card">
+            <div class="item-title">${escapeHtml(feature.name)}</div>
+            <div class="item-meta">${escapeHtml(feature.action)} • Uses: ${escapeHtml(uses)} • Reset: ${escapeHtml(feature.reset)}</div>
+            <p>${escapeHtml(feature.description || "")}</p>
+          </div>`;
+      }).join("") : `<p class="empty">No features added.</p>`;
 
-      const inventoryRows = inventoryItems.length ? inventoryItems.map(item => {
-        return `<tr><td>${escapeHtml(item.category)}</td><td>${escapeHtml(item.qty)}x ${escapeHtml(item.name)}</td><td>${escapeHtml(item.notes || "")}</td></tr>`;
-      }).join("") : "";
+      const inventoryCards = inventoryItems.length ? inventoryItems.map(item => {
+        return `
+          <div class="item-card">
+            <div class="item-title">${escapeHtml(item.qty)}× ${escapeHtml(item.name)}</div>
+            <div class="item-meta">${escapeHtml(item.category)}</div>
+            <p>${escapeHtml(item.notes || "")}</p>
+          </div>`;
+      }).join("") : `<p class="empty">No inventory added.</p>`;
 
-      const sheetCode = currentSheetId || "Not saved";
       const htmlContent = `
         <!DOCTYPE html>
         <html>
@@ -3748,47 +3770,271 @@
           <title>${escapeHtml(name)} Character Sheet</title>
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
-            body { font-family: Arial, sans-serif; color: #111827; margin: 24px; line-height: 1.35; }
-            h1 { margin-bottom: 4px; }
-            h2 { border-bottom: 1px solid #d1d5db; padding-bottom: 4px; margin-top: 22px; }
-            .meta { color: #4b5563; margin-bottom: 14px; }
-            .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-            .box { border: 1px solid #d1d5db; border-radius: 8px; padding: 8px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-            th, td { border: 1px solid #d1d5db; padding: 6px; text-align: left; vertical-align: top; }
-            th { background: #f3f4f6; }
-            section { break-inside: avoid; }
+            :root {
+              --ink: #111827;
+              --muted: #6b7280;
+              --line: #d1d5db;
+              --soft: #f3f4f6;
+              --accent: #7c2d12;
+              --accent2: #1e3a8a;
+            }
+            body {
+              font-family: Arial, sans-serif;
+              color: var(--ink);
+              margin: 0;
+              background: #ffffff;
+              line-height: 1.35;
+            }
+            .page {
+              max-width: 900px;
+              margin: 0 auto;
+              padding: 24px;
+            }
+            .hero {
+              border: 3px solid var(--ink);
+              border-radius: 18px;
+              padding: 18px;
+              background: linear-gradient(135deg, #fff7ed, #eff6ff);
+              margin-bottom: 16px;
+            }
+            .hero-top {
+              display: flex;
+              justify-content: space-between;
+              gap: 16px;
+              align-items: flex-start;
+            }
+            h1 {
+              font-size: 34px;
+              margin: 0 0 6px;
+              letter-spacing: -0.5px;
+            }
+            .sub {
+              color: var(--muted);
+              font-size: 14px;
+            }
+            .code {
+              border: 1px solid var(--line);
+              border-radius: 999px;
+              padding: 8px 12px;
+              background: white;
+              font-size: 13px;
+              white-space: nowrap;
+            }
+            .quick-grid {
+              display: grid;
+              grid-template-columns: repeat(5, 1fr);
+              gap: 10px;
+              margin-top: 16px;
+            }
+            .stat {
+              background: white;
+              border: 1px solid var(--line);
+              border-radius: 12px;
+              padding: 10px;
+              text-align: center;
+            }
+            .stat span {
+              display: block;
+              color: var(--muted);
+              font-size: 11px;
+              text-transform: uppercase;
+              letter-spacing: .06em;
+            }
+            .stat strong {
+              display: block;
+              font-size: 22px;
+              margin-top: 4px;
+            }
+            .layout {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 14px;
+            }
+            section {
+              border: 1px solid var(--line);
+              border-radius: 14px;
+              padding: 12px;
+              break-inside: avoid;
+              margin-bottom: 14px;
+            }
+            h2 {
+              margin: 0 0 10px;
+              font-size: 18px;
+              color: var(--accent2);
+              border-bottom: 1px solid var(--line);
+              padding-bottom: 6px;
+            }
+            .ability-grid {
+              display: grid;
+              grid-template-columns: repeat(6, 1fr);
+              gap: 8px;
+            }
+            .ability-card {
+              border: 1px solid var(--line);
+              border-radius: 12px;
+              padding: 8px;
+              text-align: center;
+              background: var(--soft);
+            }
+            .ability-card span {
+              display: block;
+              font-size: 11px;
+              color: var(--muted);
+              font-weight: bold;
+            }
+            .ability-card strong {
+              display: block;
+              font-size: 22px;
+            }
+            .ability-card em {
+              display: inline-block;
+              font-style: normal;
+              background: white;
+              border: 1px solid var(--line);
+              border-radius: 999px;
+              padding: 2px 8px;
+              font-size: 12px;
+            }
+            .item-card {
+              border: 1px solid var(--line);
+              border-radius: 12px;
+              padding: 10px;
+              margin-bottom: 8px;
+              background: #fff;
+            }
+            .item-title {
+              font-weight: bold;
+              color: var(--accent);
+              font-size: 15px;
+            }
+            .item-meta {
+              color: var(--muted);
+              font-size: 12px;
+              margin-top: 2px;
+            }
+            .item-card p {
+              margin: 6px 0 0;
+              font-size: 13px;
+              white-space: pre-wrap;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              font-size: 12px;
+            }
+            th, td {
+              border-bottom: 1px solid #e5e7eb;
+              padding: 5px;
+              text-align: left;
+            }
+            th {
+              color: var(--muted);
+              text-transform: uppercase;
+              font-size: 10px;
+              letter-spacing: .05em;
+            }
+            .full {
+              grid-column: 1 / -1;
+            }
+            .empty {
+              color: var(--muted);
+              font-style: italic;
+            }
+            .print-btn {
+              position: sticky;
+              top: 10px;
+              z-index: 2;
+              padding: 10px 14px;
+              border: 0;
+              border-radius: 10px;
+              background: #2563eb;
+              color: white;
+              font-weight: bold;
+              margin-bottom: 12px;
+            }
             @media print {
-              button { display: none; }
-              body { margin: 12mm; }
+              .print-btn { display: none; }
+              .page { padding: 0; max-width: none; }
+              body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            }
+            @media (max-width: 760px) {
+              .layout { grid-template-columns: 1fr; }
+              .quick-grid { grid-template-columns: repeat(2, 1fr); }
+              .ability-grid { grid-template-columns: repeat(3, 1fr); }
+              .hero-top { flex-direction: column; }
             }
           </style>
         </head>
         <body>
-          <button onclick="window.print()">Print / Save as PDF</button>
-          <h1>${escapeHtml(name)}</h1>
-          <div class="meta">Sheet Code: ${escapeHtml(sheetCode)} | Exported: ${new Date().toLocaleString()}</div>
+          <div class="page">
+            <button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
 
-          <div class="grid">
-            <div class="box"><strong>Player</strong><br>${escapeHtml(player)}</div>
-            <div class="box"><strong>Race</strong><br>${escapeHtml(race)}</div>
-            <div class="box"><strong>Class</strong><br>${escapeHtml(charClass)}</div>
-            <div class="box"><strong>Level</strong><br>${escapeHtml(level)}</div>
-            <div class="box"><strong>Background</strong><br>${escapeHtml(background)}</div>
-            <div class="box"><strong>HP</strong><br>${escapeHtml(getFieldValue("currentHp", "0"))}/${escapeHtml(getFieldValue("maxHp", "0"))} + ${escapeHtml(getFieldValue("tempHp", "0"))} temp</div>
-            <div class="box"><strong>AC</strong><br>${escapeHtml(getFieldValue("ac", "10"))}</div>
-            <div class="box"><strong>Initiative</strong><br>${escapeHtml(getFieldValue("initiative", "+0"))}</div>
-            <div class="box"><strong>Speed</strong><br>${escapeHtml(getFieldValue("speed", ""))}</div>
-            <div class="box"><strong>Passive Scores</strong><br>PP ${10 + getSkillTotal("skill_perception")} | PI ${10 + getSkillTotal("skill_insight")} | PINV ${10 + getSkillTotal("skill_investigation")}</div>
-            <div class="box"><strong>Conditions</strong><br>${escapeHtml(getCheckedConditionsText())}</div>
+            <div class="hero">
+              <div class="hero-top">
+                <div>
+                  <h1>${escapeHtml(name)}</h1>
+                  <div class="sub">${escapeHtml(race)} ${escapeHtml(charClass)} • Level ${escapeHtml(level)} • ${escapeHtml(background)}</div>
+                  <div class="sub">Player: ${escapeHtml(player || "—")} • Exported ${new Date().toLocaleString()}</div>
+                </div>
+                <div class="code">Sheet Code: <strong>${escapeHtml(sheetCode)}</strong></div>
+              </div>
+
+              <div class="quick-grid">
+                <div class="stat"><span>HP</span><strong>${escapeHtml(getFieldValue("currentHp","0"))}/${escapeHtml(getFieldValue("maxHp","0"))}</strong></div>
+                <div class="stat"><span>Temp</span><strong>${escapeHtml(getFieldValue("tempHp","0"))}</strong></div>
+                <div class="stat"><span>AC</span><strong>${escapeHtml(getFieldValue("ac","10"))}</strong></div>
+                <div class="stat"><span>Init</span><strong>${escapeHtml(getFieldValue("initiative","+0"))}</strong></div>
+                <div class="stat"><span>Speed</span><strong>${escapeHtml(getFieldValue("speed",""))}</strong></div>
+                <div class="stat"><span>Passive Perception</span><strong>${10 + getSkillTotal("skill_perception")}</strong></div>
+                <div class="stat"><span>Passive Insight</span><strong>${10 + getSkillTotal("skill_insight")}</strong></div>
+                <div class="stat"><span>Passive Investigation</span><strong>${10 + getSkillTotal("skill_investigation")}</strong></div>
+                <div class="stat"><span>Hit Dice</span><strong>d${escapeHtml(getFieldValue("hitDie","8"))}</strong></div>
+                <div class="stat"><span>Conditions</span><strong style="font-size:13px;">${escapeHtml(getCheckedConditionsText())}</strong></div>
+              </div>
+            </div>
+
+            <section class="full">
+              <h2>Ability Scores</h2>
+              <div class="ability-grid">${abilityCards}</div>
+            </section>
+
+            <div class="layout">
+              <section>
+                <h2>Saving Throws</h2>
+                <table><tr><th>Save</th><th>Prof</th><th>Bonus</th></tr>${saveRows}</table>
+              </section>
+
+              <section>
+                <h2>Skills</h2>
+                <table><tr><th>Skill</th><th>Training</th><th>Bonus</th></tr>${skillRows}</table>
+              </section>
+
+              <section>
+                <h2>Attacks</h2>
+                ${attackCards}
+              </section>
+
+              <section>
+                <h2>Spells & Cantrips</h2>
+                ${spellCards}
+              </section>
+
+              <section>
+                <h2>Features</h2>
+                ${featureCards}
+              </section>
+
+              <section>
+                <h2>Inventory</h2>
+                ${inventoryCards}
+              </section>
+
+              <section class="full">
+                <h2>Notes</h2>
+                <p>${escapeHtml(getFieldValue("notes", "")).replaceAll("\\n", "<br>") || "<span class='empty'>No notes.</span>"}</p>
+              </section>
+            </div>
           </div>
-
-          ${getExportSection("Ability Scores", `<table><tr><th>Ability</th><th>Score</th><th>Mod</th></tr>${abilityRows}</table>`)}
-          ${getExportSection("Attacks", attackRows ? `<table><tr><th>Name</th><th>Hit</th><th>Damage</th><th>Mastery</th></tr>${attackRows}</table>` : "")}
-          ${getExportSection("Spells / Cantrips", spellRows ? `<table><tr><th>Name</th><th>Level</th><th>Details</th><th>Notes</th></tr>${spellRows}</table>` : "")}
-          ${getExportSection("Features", featureRows ? `<table><tr><th>Name</th><th>Action</th><th>Uses</th><th>Reset</th><th>Description</th></tr>${featureRows}</table>` : "")}
-          ${getExportSection("Inventory", inventoryRows ? `<table><tr><th>Category</th><th>Item</th><th>Notes</th></tr>${inventoryRows}</table>` : "")}
-          ${getExportSection("Notes", `<p>${escapeHtml(getFieldValue("notes", "")).replaceAll("\\n", "<br>")}</p>`)}
         </body>
         </html>
       `;
