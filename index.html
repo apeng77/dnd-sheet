@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>D&D Character Sheet v27</title>
+  <title>D&D Character Sheet v28</title>
   <style>
     :root {
       --bg: #111827;
@@ -898,6 +898,28 @@
       display: none !important;
     }
 
+
+    .inline-error {
+      background: #450a0a;
+      border: 1px solid #ef4444;
+      color: #fecaca;
+      border-radius: 10px;
+      padding: 10px;
+      margin-top: 10px;
+      display: none;
+      font-size: 14px;
+    }
+
+    .inline-error.show {
+      display: block;
+    }
+
+    .export-note {
+      color: var(--hint);
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
     .footer {
       text-align: center;
       color: var(--hint);
@@ -990,6 +1012,7 @@
         <h2>Load Sheet</h2>
         <label>Sheet Code</label>
         <input id="loadSheetCode" placeholder="Paste sheet code here">
+        <div class="inline-error" id="loadSheetError"></div>
         <div class="home-actions">
           <button class="success" onclick="loadSheetFromCode()">Load Sheet</button>
           <button class="ghost" onclick="showHomeMain()">Back</button>
@@ -1010,13 +1033,14 @@
   </div>
 
   <div class="container" id="app">
-    <h1>D&D Character Sheet v27</h1>
+    <h1>D&D Character Sheet v28</h1>
 
     <div class="sheet-top-actions">
       <button class="ghost" onclick="goToSheetHome()">Sheet Home</button>
       <button class="purple" onclick="copySheetCode()">Copy Sheet Code</button>
       <button class="success" onclick="saveData()">Save Current Sheet</button>
       <button class="purple" onclick="editSheetCode()">Edit Sheet Code</button>
+      <button class="success" onclick="exportPrintableSheet()">Export / Print PDF</button>
       <button class="danger" onclick="deleteCurrentSheet()">Delete Sheet</button>
     </div>
 
@@ -1968,11 +1992,11 @@
 
 
     function getSheetStorageKey(id) {
-      return "dndCharacterSheetV27_" + id;
+      return "dndCharacterSheetV28_" + id;
     }
 
     function getCollapsedStorageKey(id) {
-      return "dndSheetV27Collapsed_" + id;
+      return "dndSheetV28Collapsed_" + id;
     }
 
     function getUserSheetsCollection() {
@@ -2057,14 +2081,15 @@
     async function loadSheetFromCode() {
       const input = document.getElementById("loadSheetCode");
       const code = normalizeSheetCode(input.value);
+      clearLoadSheetError();
 
       if (!code) {
-        alert("Enter a sheet code.");
+        showLoadSheetError("Enter a sheet code first.");
         return;
       }
 
       if (!validateSheetCode(code)) {
-        alert("Sheet codes must be 4–20 characters and use only letters A-Z and numbers 0-9.");
+        showLoadSheetError("Sheet codes must be 4-20 characters and use only letters A-Z and numbers 0-9.");
         return;
       }
 
@@ -2078,7 +2103,7 @@
       const code = generateSheetCode();
 
       currentSheetId = code;
-      localStorage.setItem("dndActiveSheetIdV27", currentSheetId);
+      localStorage.setItem("dndActiveSheetIdV28", currentSheetId);
 
       suppressAutoSave = true;
       clearCurrentForm();
@@ -2107,17 +2132,17 @@
       const code = normalizeSheetCode(id);
 
       if (!code) {
-        alert("Enter a sheet code.");
+        showLoadSheetError("Enter a sheet code first.");
         return;
       }
 
       if (!validateSheetCode(code)) {
-        alert("Sheet codes must be 4–20 characters and use only letters A-Z and numbers 0-9.");
+        showLoadSheetError("Sheet codes must be 4-20 characters and use only letters A-Z and numbers 0-9.");
         return;
       }
 
       currentSheetId = code;
-      localStorage.setItem("dndActiveSheetIdV27", currentSheetId);
+      localStorage.setItem("dndActiveSheetIdV28", currentSheetId);
 
       suppressAutoSave = true;
       clearCurrentForm(false);
@@ -2126,11 +2151,10 @@
       const loaded = await loadData();
 
       if (!loaded) {
-        alert("No sheet found with that code.");
+        showLoadSheetError("No sheet found with that code. Check the code and try again.");
         currentSheetId = null;
-        localStorage.removeItem("dndActiveSheetIdV27");
+        localStorage.removeItem("dndActiveSheetIdV28");
         document.getElementById("homeScreen").classList.remove("hidden");
-        showLoadSheets();
         return;
       }
 
@@ -2144,6 +2168,7 @@
       document.getElementById("app").classList.toggle("combat-mode", combatToggle && combatToggle.checked);
 
       document.getElementById("homeScreen").classList.add("hidden");
+      clearLoadSheetError();
       showDicePop("Sheet loaded.");
     }
 
@@ -2155,7 +2180,7 @@
       localStorage.removeItem(getCollapsedStorageKey(id));
       if (currentSheetId === id) {
         currentSheetId = null;
-        localStorage.removeItem("dndActiveSheetIdV27");
+        localStorage.removeItem("dndActiveSheetIdV28");
       }
       await renderSheetList();
     }
@@ -2216,7 +2241,7 @@
         localStorage.removeItem(getCollapsedStorageKey(currentCode));
 
         currentSheetId = newCode;
-        localStorage.setItem("dndActiveSheetIdV27", currentSheetId);
+        localStorage.setItem("dndActiveSheetIdV28", currentSheetId);
 
         await saveData();
 
@@ -2237,7 +2262,7 @@
       localStorage.removeItem(getSheetStorageKey(id));
       localStorage.removeItem(getCollapsedStorageKey(id));
       currentSheetId = null;
-      localStorage.removeItem("dndActiveSheetIdV27");
+      localStorage.removeItem("dndActiveSheetIdV28");
       clearCurrentForm();
       document.getElementById("homeScreen").classList.remove("hidden");
       showHomeMain();
@@ -2288,7 +2313,7 @@
     }
 
     async function initializeSheetDatabase() {
-      const activeId = localStorage.getItem("dndActiveSheetIdV27");
+      const activeId = localStorage.getItem("dndActiveSheetIdV28");
 
       if (activeId) {
         currentSheetId = activeId;
@@ -3640,6 +3665,150 @@
         }
       });
     }
+
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function getFieldValue(id, fallback = "") {
+      const el = document.getElementById(id);
+      return el ? el.value || fallback : fallback;
+    }
+
+    function getCheckedConditionsText() {
+      const active = [];
+      document.querySelectorAll(".condition.active").forEach(el => active.push(el.textContent));
+      return active.length ? active.join(", ") : "None";
+    }
+
+    function getExportSection(title, content) {
+      return `
+        <section>
+          <h2>${escapeHtml(title)}</h2>
+          ${content || "<p>None</p>"}
+        </section>
+      `;
+    }
+
+    function exportPrintableSheet() {
+      saveData();
+
+      const name = getFieldValue("name", "Unnamed Character");
+      const player = getFieldValue("player", "");
+      const race = getFieldValue("race", "");
+      const charClass = getFieldValue("class", "");
+      const level = getFieldValue("level", "1");
+      const background = getFieldValue("background", "");
+
+      const abilityRows = abilities.map(ability => {
+        const score = getFieldValue(ability, "10");
+        const mod = formatBonus(getAbilityMod(ability));
+        return `<tr><td>${ability.toUpperCase()}</td><td>${score}</td><td>${mod}</td></tr>`;
+      }).join("");
+
+      const attackRows = attacks.length ? attacks.map(attack => {
+        const actualAbility = attack.smartAbility ? chooseSmartAttackAbility(weaponData[attack.weapon]?.ability || attack.ability) : attack.ability;
+        const abilityMod = getAbilityMod(actualAbility);
+        const hitBonus = abilityMod + (attack.proficient ? getProfBonus() : 0) + (attack.hitMisc || 0);
+        const dmgBonus = abilityMod + (attack.dmgMisc || 0);
+        const dmgText = `${attack.dice || ""}${dmgBonus === 0 ? "" : formatBonus(dmgBonus)} ${attack.type || ""}`;
+        return `<tr><td>${escapeHtml(attack.name)}</td><td>${formatBonus(hitBonus)}</td><td>${escapeHtml(dmgText)}</td><td>${escapeHtml(attack.mastery || "None")}</td></tr>`;
+      }).join("") : "";
+
+      const spellRows = spells.length ? spells.map(spell => {
+        const details = [
+          spell.kind || "",
+          spell.concentration ? "Concentration" : "",
+          spell.duration ? "Duration: " + spell.duration : "",
+          spell.dice ? "Damage: " + spell.dice + " " + (spell.type || "") : ""
+        ].filter(Boolean).join(" | ");
+        return `<tr><td>${escapeHtml(spell.name)}</td><td>${escapeHtml(spell.level)}</td><td>${escapeHtml(details)}</td><td>${escapeHtml(spell.notes || "")}</td></tr>`;
+      }).join("") : "";
+
+      const featureRows = classFeatures.length ? classFeatures.map(feature => {
+        const uses = feature.maxUses > 0 ? `${feature.used || 0}/${feature.maxUses}` : "Passive";
+        return `<tr><td>${escapeHtml(feature.name)}</td><td>${escapeHtml(feature.action)}</td><td>${escapeHtml(uses)}</td><td>${escapeHtml(feature.reset)}</td><td>${escapeHtml(feature.description || "")}</td></tr>`;
+      }).join("") : "";
+
+      const inventoryRows = inventoryItems.length ? inventoryItems.map(item => {
+        return `<tr><td>${escapeHtml(item.category)}</td><td>${escapeHtml(item.qty)}x ${escapeHtml(item.name)}</td><td>${escapeHtml(item.notes || "")}</td></tr>`;
+      }).join("") : "";
+
+      const sheetCode = currentSheetId || "Not saved";
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${escapeHtml(name)} Character Sheet</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body { font-family: Arial, sans-serif; color: #111827; margin: 24px; line-height: 1.35; }
+            h1 { margin-bottom: 4px; }
+            h2 { border-bottom: 1px solid #d1d5db; padding-bottom: 4px; margin-top: 22px; }
+            .meta { color: #4b5563; margin-bottom: 14px; }
+            .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+            .box { border: 1px solid #d1d5db; border-radius: 8px; padding: 8px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+            th, td { border: 1px solid #d1d5db; padding: 6px; text-align: left; vertical-align: top; }
+            th { background: #f3f4f6; }
+            section { break-inside: avoid; }
+            @media print {
+              button { display: none; }
+              body { margin: 12mm; }
+            }
+          </style>
+        </head>
+        <body>
+          <button onclick="window.print()">Print / Save as PDF</button>
+          <h1>${escapeHtml(name)}</h1>
+          <div class="meta">Sheet Code: ${escapeHtml(sheetCode)} | Exported: ${new Date().toLocaleString()}</div>
+
+          <div class="grid">
+            <div class="box"><strong>Player</strong><br>${escapeHtml(player)}</div>
+            <div class="box"><strong>Race</strong><br>${escapeHtml(race)}</div>
+            <div class="box"><strong>Class</strong><br>${escapeHtml(charClass)}</div>
+            <div class="box"><strong>Level</strong><br>${escapeHtml(level)}</div>
+            <div class="box"><strong>Background</strong><br>${escapeHtml(background)}</div>
+            <div class="box"><strong>HP</strong><br>${escapeHtml(getFieldValue("currentHp", "0"))}/${escapeHtml(getFieldValue("maxHp", "0"))} + ${escapeHtml(getFieldValue("tempHp", "0"))} temp</div>
+            <div class="box"><strong>AC</strong><br>${escapeHtml(getFieldValue("ac", "10"))}</div>
+            <div class="box"><strong>Initiative</strong><br>${escapeHtml(getFieldValue("initiative", "+0"))}</div>
+            <div class="box"><strong>Speed</strong><br>${escapeHtml(getFieldValue("speed", ""))}</div>
+            <div class="box"><strong>Passive Scores</strong><br>PP ${10 + getSkillTotal("skill_perception")} | PI ${10 + getSkillTotal("skill_insight")} | PINV ${10 + getSkillTotal("skill_investigation")}</div>
+            <div class="box"><strong>Conditions</strong><br>${escapeHtml(getCheckedConditionsText())}</div>
+          </div>
+
+          ${getExportSection("Ability Scores", `<table><tr><th>Ability</th><th>Score</th><th>Mod</th></tr>${abilityRows}</table>`)}
+          ${getExportSection("Attacks", attackRows ? `<table><tr><th>Name</th><th>Hit</th><th>Damage</th><th>Mastery</th></tr>${attackRows}</table>` : "")}
+          ${getExportSection("Spells / Cantrips", spellRows ? `<table><tr><th>Name</th><th>Level</th><th>Details</th><th>Notes</th></tr>${spellRows}</table>` : "")}
+          ${getExportSection("Features", featureRows ? `<table><tr><th>Name</th><th>Action</th><th>Uses</th><th>Reset</th><th>Description</th></tr>${featureRows}</table>` : "")}
+          ${getExportSection("Inventory", inventoryRows ? `<table><tr><th>Category</th><th>Item</th><th>Notes</th></tr>${inventoryRows}</table>` : "")}
+          ${getExportSection("Notes", `<p>${escapeHtml(getFieldValue("notes", "")).replaceAll("\\n", "<br>")}</p>`)}
+        </body>
+        </html>
+      `;
+
+      const exportWindow = window.open("", "_blank");
+      if (!exportWindow) {
+        alert("Pop-up blocked. Allow pop-ups for this site, then try again.");
+        return;
+      }
+
+      exportWindow.document.open();
+      exportWindow.document.write(htmlContent);
+      exportWindow.document.close();
+
+      setTimeout(() => {
+        exportWindow.focus();
+        exportWindow.print();
+      }, 500);
+    }
+
 
     function resetSheet() {
       const confirmReset = confirm("Are you sure you want to reset this character sheet?");
