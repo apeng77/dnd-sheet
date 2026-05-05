@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>D&D Character Sheet v30</title>
+  <title>D&D Character Sheet v31</title>
   <style>
     :root {
       --bg: #111827;
@@ -898,6 +898,35 @@
       display: none !important;
     }
 
+
+    .dice-custom-panel {
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 12px;
+      padding: 12px;
+      margin: 12px 0;
+    }
+
+    .dice-result-box {
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 12px;
+      padding: 12px;
+      margin-top: 12px;
+      color: #bfdbfe;
+      font-weight: bold;
+      white-space: pre-wrap;
+    }
+
+    .ability-roll-btn {
+      margin-top: 8px;
+      width: 100%;
+      background: #4b5563;
+      font-size: 13px;
+      min-height: 38px;
+      padding: 8px;
+    }
+
     .footer {
       text-align: center;
       color: var(--hint);
@@ -1010,7 +1039,7 @@
   </div>
 
   <div class="container" id="app">
-    <h1>D&D Character Sheet v30</h1>
+    <h1>D&D Character Sheet v31</h1>
 
     <div class="sheet-top-actions">
       <button class="ghost" onclick="goToSheetHome()">Sheet Home</button>
@@ -1221,31 +1250,37 @@
             <label>Strength</label>
             <input id="str" type="number" value="10">
             <div class="modifier" id="strMod">+0</div>
+            <button class="ability-roll-btn" onclick="rollAbilityCheck('str', 'Strength')">Roll Check</button>
           </div>
           <div class="stat-box">
             <label>Dexterity</label>
             <input id="dex" type="number" value="10">
             <div class="modifier" id="dexMod">+0</div>
+            <button class="ability-roll-btn" onclick="rollAbilityCheck('dex', 'Dexterity')">Roll Check</button>
           </div>
           <div class="stat-box">
             <label>Constitution</label>
             <input id="con" type="number" value="10">
             <div class="modifier" id="conMod">+0</div>
+            <button class="ability-roll-btn" onclick="rollAbilityCheck('con', 'Constitution')">Roll Check</button>
           </div>
           <div class="stat-box">
             <label>Intelligence</label>
             <input id="int" type="number" value="10">
             <div class="modifier" id="intMod">+0</div>
+            <button class="ability-roll-btn" onclick="rollAbilityCheck('int', 'Intelligence')">Roll Check</button>
           </div>
           <div class="stat-box">
             <label>Wisdom</label>
             <input id="wis" type="number" value="10">
             <div class="modifier" id="wisMod">+0</div>
+            <button class="ability-roll-btn" onclick="rollAbilityCheck('wis', 'Wisdom')">Roll Check</button>
           </div>
           <div class="stat-box">
             <label>Charisma</label>
             <input id="cha" type="number" value="10">
             <div class="modifier" id="chaMod">+0</div>
+            <button class="ability-roll-btn" onclick="rollAbilityCheck('cha', 'Charisma')">Roll Check</button>
           </div>
         </div>
       </div>
@@ -1617,7 +1652,7 @@
       </div>
     </div>
 
-    <div class="card non-combat" data-section="dice">
+        <div class="card non-combat" data-section="dice">
       <div class="section-header" onclick="toggleSection(this)">
         <h2>Dice Roller</h2>
         <span class="collapse-arrow">⌃</span>
@@ -1628,13 +1663,45 @@
           <label><input type="radio" name="rollMode" value="advantage"> Advantage</label>
           <label><input type="radio" name="rollMode" value="disadvantage"> Disadvantage</label>
         </div>
+
+        <p class="hint">Advantage/disadvantage affects all single-die rolls below, including d4–d20 and ability checks.</p>
+
         <button onclick="rollDice(4)">Roll d4</button>
         <button onclick="rollDice(6)">Roll d6</button>
         <button onclick="rollDice(8)">Roll d8</button>
         <button onclick="rollDice(10)">Roll d10</button>
         <button onclick="rollDice(12)">Roll d12</button>
         <button onclick="rollDice(20)">Roll d20</button>
-        <h3 id="diceResult">Result: -</h3>
+
+        <div class="dice-custom-panel">
+          <h3>Custom Dice Roll</h3>
+          <div class="grid">
+            <div>
+              <label>Number of Dice</label>
+              <input id="customDiceCount" type="number" min="1" max="100" value="5">
+            </div>
+            <div>
+              <label>Die Type</label>
+              <select id="customDiceSides">
+                <option value="4">d4</option>
+                <option value="6" selected>d6</option>
+                <option value="8">d8</option>
+                <option value="10">d10</option>
+                <option value="12">d12</option>
+                <option value="20">d20</option>
+                <option value="100">d100</option>
+              </select>
+            </div>
+            <div>
+              <label>Modifier</label>
+              <input id="customDiceModifier" type="number" value="0">
+            </div>
+          </div>
+          <button onclick="rollCustomDice()" class="purple">Roll Custom Dice</button>
+          <p class="hint">Example: set Number of Dice to 5 and Die Type to d6 to roll 5d6.</p>
+        </div>
+
+        <div class="dice-result-box" id="diceResult">Result: -</div>
       </div>
     </div>
 
@@ -1969,11 +2036,11 @@
 
 
     function getSheetStorageKey(id) {
-      return "dndCharacterSheetV30_" + id;
+      return "dndCharacterSheetV31_" + id;
     }
 
     function getCollapsedStorageKey(id) {
-      return "dndSheetV30Collapsed_" + id;
+      return "dndSheetV31Collapsed_" + id;
     }
 
     function getUserSheetsCollection() {
@@ -2079,7 +2146,7 @@
       const code = generateSheetCode();
 
       currentSheetId = code;
-      localStorage.setItem("dndActiveSheetIdV30", currentSheetId);
+      localStorage.setItem("dndActiveSheetIdV31", currentSheetId);
 
       suppressAutoSave = true;
       clearCurrentForm();
@@ -2118,7 +2185,7 @@
       }
 
       currentSheetId = code;
-      localStorage.setItem("dndActiveSheetIdV30", currentSheetId);
+      localStorage.setItem("dndActiveSheetIdV31", currentSheetId);
 
       suppressAutoSave = true;
       clearCurrentForm(false);
@@ -2129,7 +2196,7 @@
       if (!loaded) {
         alert("No sheet found with that code.");
         currentSheetId = null;
-        localStorage.removeItem("dndActiveSheetIdV30");
+        localStorage.removeItem("dndActiveSheetIdV31");
         document.getElementById("homeScreen").classList.remove("hidden");
         showLoadSheets();
         return;
@@ -2156,7 +2223,7 @@
       localStorage.removeItem(getCollapsedStorageKey(id));
       if (currentSheetId === id) {
         currentSheetId = null;
-        localStorage.removeItem("dndActiveSheetIdV30");
+        localStorage.removeItem("dndActiveSheetIdV31");
       }
       await renderSheetList();
     }
@@ -2217,7 +2284,7 @@
         localStorage.removeItem(getCollapsedStorageKey(currentCode));
 
         currentSheetId = newCode;
-        localStorage.setItem("dndActiveSheetIdV30", currentSheetId);
+        localStorage.setItem("dndActiveSheetIdV31", currentSheetId);
 
         await saveData();
 
@@ -2238,7 +2305,7 @@
       localStorage.removeItem(getSheetStorageKey(id));
       localStorage.removeItem(getCollapsedStorageKey(id));
       currentSheetId = null;
-      localStorage.removeItem("dndActiveSheetIdV30");
+      localStorage.removeItem("dndActiveSheetIdV31");
       clearCurrentForm();
       document.getElementById("homeScreen").classList.remove("hidden");
       showHomeMain();
@@ -2289,7 +2356,7 @@
     }
 
     async function initializeSheetDatabase() {
-      const activeId = localStorage.getItem("dndActiveSheetIdV30");
+      const activeId = localStorage.getItem("dndActiveSheetIdV31");
 
       if (activeId) {
         currentSheetId = activeId;
@@ -3601,8 +3668,53 @@
     }
 
     function rollDice(sides) {
-      const result = rollDie(sides);
-      document.getElementById("diceResult").textContent = "Result: " + result + " on a d" + sides;
+      const mode = getRollMode();
+      const roll1 = rollDie(sides);
+      let result = roll1;
+      let detail = `d${sides}: ${roll1}`;
+
+      if (mode === "advantage" || mode === "disadvantage") {
+        const roll2 = rollDie(sides);
+        result = mode === "advantage" ? Math.max(roll1, roll2) : Math.min(roll1, roll2);
+        detail = `${mode === "advantage" ? "Advantage" : "Disadvantage"} d${sides}: [${roll1}, ${roll2}] → ${result}`;
+      }
+
+      const text = `Result: ${detail}`;
+      document.getElementById("diceResult").textContent = text;
+      showDicePop(text);
+    }
+
+    function rollCustomDice() {
+      const countInput = document.getElementById("customDiceCount");
+      const sidesInput = document.getElementById("customDiceSides");
+      const modInput = document.getElementById("customDiceModifier");
+
+      let count = Math.max(1, Math.min(100, Number(countInput.value) || 1));
+      const sides = Number(sidesInput.value) || 6;
+      const modifier = Number(modInput.value) || 0;
+
+      countInput.value = count;
+
+      const rolls = [];
+      let total = 0;
+
+      for (let i = 0; i < count; i++) {
+        const roll = rollDie(sides);
+        rolls.push(roll);
+        total += roll;
+      }
+
+      const finalTotal = total + modifier;
+      const modText = modifier === 0 ? "" : ` ${formatBonus(modifier)}`;
+      const resultText = `${count}d${sides}${modText}: [${rolls.join(", ")}]${modText} = ${finalTotal}`;
+
+      document.getElementById("diceResult").textContent = "Result: " + resultText;
+      showDicePop(resultText);
+    }
+
+    function rollAbilityCheck(ability, label) {
+      const bonus = getAbilityMod(ability);
+      rollD20(`${label} Check`, bonus);
     }
 
     function toggleSection(header) {
