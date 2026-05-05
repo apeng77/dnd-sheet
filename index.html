@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>D&D Character Sheet v31</title>
+  <title>D&D Character Sheet v32</title>
   <style>
     :root {
       --bg: #111827;
@@ -927,6 +927,154 @@
       padding: 8px;
     }
 
+
+    .mode-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #111827;
+      border: 1px solid #374151;
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+    }
+
+    .mode-toggle input {
+      width: 24px;
+      height: 24px;
+      margin: 0;
+    }
+
+    .play-mode .builder-card,
+    .play-mode .edit-only,
+    .play-mode .quick-add-btn,
+    .play-mode .inline-edit,
+    .play-mode .sheet-top-actions .edit-action {
+      display: none !important;
+    }
+
+    .play-mode .spell-builder-section,
+    .play-mode .feature-builder-section,
+    .play-mode .inventory-builder-section,
+    .play-mode .attack-builder-section {
+      display: none !important;
+    }
+
+    .spell-group-title {
+      color: #bfdbfe;
+      font-size: 15px;
+      font-weight: bold;
+      margin: 12px 0 8px;
+      border-bottom: 1px solid #374151;
+      padding-bottom: 6px;
+    }
+
+    .spell-card-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .slot-choice-panel {
+      display: none;
+      grid-column: 1 / -1;
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 10px;
+      padding: 10px;
+      margin-top: 10px;
+    }
+
+    .slot-choice-panel.active {
+      display: block;
+    }
+
+    .slot-choice-buttons {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .slot-choice-buttons button:disabled {
+      background: #374151;
+      color: #6b7280;
+      cursor: not-allowed;
+    }
+
+    .roll-history-toggle {
+      position: fixed;
+      right: 12px;
+      bottom: 76px;
+      z-index: 1400;
+      border-radius: 999px;
+      width: 48px;
+      height: 48px;
+      padding: 0;
+      margin: 0;
+      background: #111827;
+      border: 1px solid #60a5fa;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+    }
+
+    .roll-history-panel {
+      position: fixed;
+      right: 12px;
+      bottom: 132px;
+      width: min(340px, calc(100vw - 24px));
+      max-height: 280px;
+      overflow-y: auto;
+      background: #020617;
+      border: 1px solid #374151;
+      border-radius: 14px;
+      padding: 10px;
+      z-index: 1400;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.5);
+      display: none;
+    }
+
+    .roll-history-panel.active {
+      display: block;
+    }
+
+    .roll-history-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #bfdbfe;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .roll-history-entry {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 8px;
+      padding: 7px;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: #e5e7eb;
+    }
+
+    .roll-history-time {
+      color: #9ca3af;
+      font-size: 11px;
+      margin-top: 2px;
+    }
+
+    @media (max-width: 650px) {
+      .roll-history-toggle {
+        bottom: 82px;
+        right: 10px;
+      }
+
+      .roll-history-panel {
+        bottom: 140px;
+        right: 10px;
+      }
+    }
+
     .footer {
       text-align: center;
       color: var(--hint);
@@ -1039,13 +1187,13 @@
   </div>
 
   <div class="container" id="app">
-    <h1>D&D Character Sheet v31</h1>
+    <h1>D&D Character Sheet v32</h1>
 
     <div class="sheet-top-actions">
       <button class="ghost" onclick="goToSheetHome()">Sheet Home</button>
       <button class="purple" onclick="copySheetCode()">Copy Sheet Code</button>
       <button class="success" onclick="saveData()">Save Current Sheet</button>
-      <button class="purple" onclick="editSheetCode()">Edit Sheet Code</button>
+      <button class="purple edit-action" onclick="editSheetCode()">Edit Sheet Code</button>
       <button class="success" onclick="exportPrintableSheet()">Export PDF</button>
       <button class="danger" onclick="deleteCurrentSheet()">Delete Sheet</button>
     </div>
@@ -1054,6 +1202,12 @@
       <input type="checkbox" id="combatMode">
       <strong>Quick Combat Mode</strong>
       <span class="hint">Shows only the most useful combat sections.</span>
+    </div>
+
+    <div class="mode-toggle">
+      <input type="checkbox" id="playMode">
+      <strong>Play Mode</strong>
+      <span class="hint">Hides builders/editing and keeps the sheet focused for gameplay.</span>
     </div>
 
     <div class="turn-tracker" data-section="turnTracker">
@@ -1308,7 +1462,7 @@
       </div>
     </div>
 
-    <div class="card" data-section="attackBuilder">
+    <div class="card builder-card" data-section="attackBuilder">
       <div class="section-header" onclick="toggleSection(this)">
         <h2>Attack Builder</h2>
         <span class="collapse-arrow">⌃</span>
@@ -1413,7 +1567,7 @@
       </div>
     </div>
 
-    <div class="card non-combat" data-section="featureBuilder">
+    <div class="card non-combat builder-card" data-section="featureBuilder">
       <div class="section-header" onclick="toggleSection(this)">
         <h2>Feature Builder</h2>
         <span class="collapse-arrow">⌃</span>
@@ -1478,7 +1632,7 @@
       </div>
     </div>
 
-    <div class="card non-combat" data-section="spellBuilder">
+    <div class="card non-combat builder-card" data-section="spellBuilder">
       <div class="section-header" onclick="toggleSection(this)">
         <h2>Spell / Cantrip Builder</h2>
         <span class="collapse-arrow">⌃</span>
@@ -1594,7 +1748,7 @@
       </div>
     </div>
 
-    <div class="card non-combat" data-section="inventoryBuilder">
+    <div class="card non-combat builder-card" data-section="inventoryBuilder">
       <div class="section-header" onclick="toggleSection(this)">
         <h2>Inventory Builder</h2>
         <span class="collapse-arrow">⌃</span>
@@ -1717,6 +1871,16 @@
       </div>
     </div>
 
+
+    <button class="roll-history-toggle" onclick="toggleRollHistory()" title="Roll History">🎲</button>
+    <div class="roll-history-panel" id="rollHistoryPanel">
+      <div class="roll-history-title">
+        <span>Recent Rolls</span>
+        <button class="mini-button ghost" onclick="clearRollHistory()">Clear</button>
+      </div>
+      <div id="rollHistoryList"></div>
+    </div>
+
     <div class="dice-pop" id="dicePop"></div>
 
     <div class="footer">
@@ -1750,6 +1914,7 @@
     let classFeatures = [];
     let turnState = { Action: false, Bonus: false, Reaction: false, Movement: false };
     let currentSheetId = null;
+    let rollHistory = [];
     let suppressAutoSave = false;
 
     const basicFields = [
@@ -1759,7 +1924,7 @@
       "str", "dex", "con", "int", "wis", "cha",
       "features", "notes", "sheetSearch",
       "damageAmount", "healAmount",
-      "combatMode",
+      "combatMode", "playMode",
       "ds1", "ds2", "ds3", "df1", "df2", "df3"
     ];
 
@@ -2036,11 +2201,11 @@
 
 
     function getSheetStorageKey(id) {
-      return "dndCharacterSheetV31_" + id;
+      return "dndCharacterSheetV32_" + id;
     }
 
     function getCollapsedStorageKey(id) {
-      return "dndSheetV31Collapsed_" + id;
+      return "dndSheetV32Collapsed_" + id;
     }
 
     function getUserSheetsCollection() {
@@ -2146,7 +2311,7 @@
       const code = generateSheetCode();
 
       currentSheetId = code;
-      localStorage.setItem("dndActiveSheetIdV31", currentSheetId);
+      localStorage.setItem("dndActiveSheetIdV32", currentSheetId);
 
       suppressAutoSave = true;
       clearCurrentForm();
@@ -2185,7 +2350,7 @@
       }
 
       currentSheetId = code;
-      localStorage.setItem("dndActiveSheetIdV31", currentSheetId);
+      localStorage.setItem("dndActiveSheetIdV32", currentSheetId);
 
       suppressAutoSave = true;
       clearCurrentForm(false);
@@ -2196,7 +2361,7 @@
       if (!loaded) {
         alert("No sheet found with that code.");
         currentSheetId = null;
-        localStorage.removeItem("dndActiveSheetIdV31");
+        localStorage.removeItem("dndActiveSheetIdV32");
         document.getElementById("homeScreen").classList.remove("hidden");
         showLoadSheets();
         return;
@@ -2207,6 +2372,7 @@
       updateStickyBar();
       updateDeathStatus();
       renderTurnTracker();
+      renderRollHistory();
 
       const combatToggle = document.getElementById("combatMode");
       document.getElementById("app").classList.toggle("combat-mode", combatToggle && combatToggle.checked);
@@ -2223,7 +2389,7 @@
       localStorage.removeItem(getCollapsedStorageKey(id));
       if (currentSheetId === id) {
         currentSheetId = null;
-        localStorage.removeItem("dndActiveSheetIdV31");
+        localStorage.removeItem("dndActiveSheetIdV32");
       }
       await renderSheetList();
     }
@@ -2284,7 +2450,7 @@
         localStorage.removeItem(getCollapsedStorageKey(currentCode));
 
         currentSheetId = newCode;
-        localStorage.setItem("dndActiveSheetIdV31", currentSheetId);
+        localStorage.setItem("dndActiveSheetIdV32", currentSheetId);
 
         await saveData();
 
@@ -2305,7 +2471,7 @@
       localStorage.removeItem(getSheetStorageKey(id));
       localStorage.removeItem(getCollapsedStorageKey(id));
       currentSheetId = null;
-      localStorage.removeItem("dndActiveSheetIdV31");
+      localStorage.removeItem("dndActiveSheetIdV32");
       clearCurrentForm();
       document.getElementById("homeScreen").classList.remove("hidden");
       showHomeMain();
@@ -2356,7 +2522,7 @@
     }
 
     async function initializeSheetDatabase() {
-      const activeId = localStorage.getItem("dndActiveSheetIdV31");
+      const activeId = localStorage.getItem("dndActiveSheetIdV32");
 
       if (activeId) {
         currentSheetId = activeId;
@@ -2638,135 +2804,156 @@
         return;
       }
 
-      spells.forEach(spell => {
-        const spellAttackBonus = getAbilityMod(spell.ability) + getProfBonus();
-        const saveDc = 8 + getAbilityMod(spell.ability) + getProfBonus();
+      const cantrips = spells.filter(spell => spell.level === "Cantrip");
+      const leveled = spells.filter(spell => spell.level !== "Cantrip")
+        .sort((a, b) => Number(a.level) - Number(b.level) || String(a.name).localeCompare(String(b.name)));
 
-        const subParts = [
-          spell.level === "Cantrip" ? "Cantrip" : `Level ${spell.level}`,
-          spell.kind
-        ];
+      function renderSpellGroup(title, list) {
+        if (!list.length) return;
 
-        if (spell.kind === "Spell Attack") subParts.push(`${formatBonus(spellAttackBonus)} to hit`);
-        if (spell.kind === "Save Spell") subParts.push(`Save DC ${saveDc}`);
-        if (spell.dice) subParts.push(`${spell.dice} ${spell.type}`);
-        if (spell.prepared === false) subParts.push("Not prepared");
-        if (spell.concentration) subParts.push("Concentration");
-        if (spell.duration) subParts.push(`Duration: ${spell.duration}`);
+        const header = document.createElement("div");
+        header.className = "spell-group-title";
+        header.textContent = title;
+        container.appendChild(header);
 
-        const div = document.createElement("div");
-        div.className = "spell-card compact-card";
-        div.innerHTML = `
-          <div class="spell-main">
-            <div>
-              <div class="spell-title">${spell.name}</div>
-              <div class="spell-sub">${subParts.join(" • ")}</div>
-              <div class="spell-sub">${spell.notes || ""}</div>
+        list.forEach(spell => {
+          const spellAttackBonus = getAbilityMod(spell.ability) + getProfBonus();
+          const saveDc = 8 + getAbilityMod(spell.ability) + getProfBonus();
+
+          const subParts = [
+            spell.level === "Cantrip" ? "Cantrip" : `Level ${spell.level}`,
+            spell.kind
+          ];
+
+          if (spell.kind === "Spell Attack") subParts.push(`${formatBonus(spellAttackBonus)} to hit`);
+          if (spell.kind === "Save Spell") subParts.push(`Save DC ${saveDc}`);
+          if (spell.dice) subParts.push(`${spell.dice} ${spell.type}`);
+          if (spell.prepared === false) subParts.push("Not prepared");
+          if (spell.concentration) subParts.push("Concentration");
+          if (spell.duration) subParts.push(`Duration: ${spell.duration}`);
+
+          const div = document.createElement("div");
+          div.className = "spell-card compact-card";
+          div.innerHTML = `
+            <div class="spell-main">
+              <div>
+                <div class="spell-title">${spell.name}</div>
+                <div class="spell-sub">${subParts.join(" • ")}</div>
+                <div class="spell-sub">${spell.notes || ""}</div>
+              </div>
+              <div class="spell-card-actions">
+                ${spell.level !== "Cantrip" ? `<button class="mini-button success" onclick="showSpellSlotChoices(${spell.id})">Cast</button>` : ""}
+                ${spell.kind === "Spell Attack" ? `<button class="mini-button purple" onclick="rollSpellAttack(${spell.id})">Roll Hit</button>` : ""}
+                ${spell.dice ? `<button class="mini-button purple" onclick="rollSpellDamage(${spell.id})">Roll Dmg</button>` : ""}
+                ${spell.concentration ? `<button class="mini-button warning" onclick="toggleConcentration(${spell.id})">Concentration</button>` : ""}
+                <button class="mini-button ghost edit-only" onclick="editSpell(${spell.id})">Edit</button>
+                <button class="mini-button danger edit-only" onclick="deleteSpell(${spell.id})">Delete</button>
+              </div>
             </div>
-            <div>
-              ${spell.level !== "Cantrip" ? `<button class="mini-button success" onclick="toggleCastOptions(${spell.id})">Cast</button>` : ""}
-              ${spell.kind === "Spell Attack" ? `<button class="mini-button purple" onclick="rollSpellAttack(${spell.id})">Roll Hit</button>` : ""}
-              ${spell.dice ? `<button class="mini-button purple" onclick="rollSpellDamage(${spell.id})">Roll Dmg</button>` : ""}
-              ${spell.concentration ? `<button class="mini-button warning" onclick="toggleConcentration(${spell.id})">Concentration</button>` : ""}
-              <button class="mini-button ghost" onclick="editSpell(${spell.id})">Edit</button>
-              <button class="mini-button danger" onclick="deleteSpell(${spell.id})">Delete</button>
+
+            <div class="inline-edit" id="edit_spell_${spell.id}">
+              <div class="grid-wide">
+                <div><label>Name</label><input id="edit_spell_name_${spell.id}" value="${spell.name || ""}"></div>
+                <div><label>Level</label><select id="edit_spell_level_${spell.id}">${spellLevelOptions(spell.level || "Cantrip")}</select></div>
+                <div><label>Kind</label><select id="edit_spell_kind_${spell.id}">${optionList(["Spell Attack","Save Spell","Utility"], spell.kind || "Utility")}</select></div>
+                <div><label>Ability</label><select id="edit_spell_ability_${spell.id}">${optionList(["int","wis","cha"], spell.ability || "cha")}</select></div>
+                <div><label>Prepared?</label><select id="edit_spell_prepared_${spell.id}">${yesNoOptions(spell.prepared !== false)}</select></div>
+                <div><label>Concentration?</label><select id="edit_spell_concentration_${spell.id}">${yesNoOptions(!!spell.concentration)}</select></div>
+                <div><label>Duration</label><input id="edit_spell_duration_${spell.id}" value="${spell.duration || ""}"></div>
+                <div><label>Damage Dice</label><select id="edit_spell_dice_${spell.id}">${optionList(["","1d4","1d6","1d8","1d10","1d12","2d6","3d6","4d6","custom"], ["","1d4","1d6","1d8","1d10","1d12","2d6","3d6","4d6"].includes(spell.dice) ? spell.dice : "custom")}</select></div>
+                <div><label>Custom Dice</label><input id="edit_spell_customDice_${spell.id}" value="${["","1d4","1d6","1d8","1d10","1d12","2d6","3d6","4d6"].includes(spell.dice) ? "" : spell.dice}"></div>
+                <div><label>Damage Type</label><select id="edit_spell_type_${spell.id}">${optionList(["","acid","cold","fire","force","lightning","necrotic","poison","psychic","radiant","thunder"], spell.type || "")}</select></div>
+              </div>
+              <label>Notes</label>
+              <textarea id="edit_spell_notes_${spell.id}">${spell.notes || ""}</textarea>
+              <button class="success" onclick="saveSpellEdit(${spell.id})">Save Changes</button>
             </div>
-          </div>
-          <div class="inline-edit" id="edit_spell_${spell.id}">
-            <div class="grid-wide">
-              <div><label>Name</label><input id="edit_spell_name_${spell.id}" value="${spell.name || ""}"></div>
-              <div><label>Level</label><select id="edit_spell_level_${spell.id}">${spellLevelOptions(spell.level || "Cantrip")}</select></div>
-              <div><label>Kind</label><select id="edit_spell_kind_${spell.id}">${optionList(["Spell Attack","Save Spell","Utility"], spell.kind || "Utility")}</select></div>
-              <div><label>Ability</label><select id="edit_spell_ability_${spell.id}">${optionList(["int","wis","cha"], spell.ability || "cha")}</select></div>
-              <div><label>Prepared?</label><select id="edit_spell_prepared_${spell.id}">${yesNoOptions(spell.prepared !== false)}</select></div>
-              <div><label>Concentration?</label><select id="edit_spell_concentration_${spell.id}">${yesNoOptions(!!spell.concentration)}</select></div>
-              <div><label>Duration</label><input id="edit_spell_duration_${spell.id}" value="${spell.duration || ""}"></div>
-              <div><label>Damage Dice</label><select id="edit_spell_dice_${spell.id}">${optionList(["","1d4","1d6","1d8","1d10","1d12","2d6","3d6","4d6","custom"], ["","1d4","1d6","1d8","1d10","1d12","2d6","3d6","4d6"].includes(spell.dice) ? spell.dice : "custom")}</select></div>
-              <div><label>Custom Dice</label><input id="edit_spell_customDice_${spell.id}" value="${["","1d4","1d6","1d8","1d10","1d12","2d6","3d6","4d6"].includes(spell.dice) ? "" : spell.dice}"></div>
-              <div><label>Damage Type</label><select id="edit_spell_type_${spell.id}">${optionList(["","acid","cold","fire","force","lightning","necrotic","poison","psychic","radiant","thunder"], spell.type || "")}</select></div>
+
+            <div class="slot-choice-panel" id="slotChoices_${spell.id}">
+              <strong>Choose spell slot level</strong>
+              <div class="slot-choice-buttons" id="slotChoiceButtons_${spell.id}"></div>
             </div>
-            <label>Notes</label>
-            <textarea id="edit_spell_notes_${spell.id}">${spell.notes || ""}</textarea>
-            <button class="success" onclick="saveSpellEdit(${spell.id})">Save Changes</button>
-          </div>
-          <div class="cast-row" id="castOptions_${spell.id}">
-            <strong>Choose spell slot level:</strong>
-            <div class="cast-buttons" id="castButtons_${spell.id}"></div>
-          </div>
-        `;
-        container.appendChild(div);
-      });
-    }
-
-    function toggleCastOptions(id) {
-      const spell = spells.find(s => s.id === id);
-      if (!spell) return;
-
-      const row = document.getElementById(`castOptions_${id}`);
-      const buttons = document.getElementById(`castButtons_${id}`);
-      if (!row || !buttons) return;
-
-      row.classList.toggle("active");
-      buttons.innerHTML = "";
-
-      const spellMinLevel = Number(spell.level);
-      for (let level = spellMinLevel; level <= 9; level++) {
-        const max = Number(document.getElementById(`spell${level}_max`)?.value) || 0;
-        const used = getUsedSpellSlots(level);
-        const available = max - used;
-
-        if (max > 0) {
-          const btn = document.createElement("button");
-          btn.className = "cast-slot-btn";
-          btn.textContent = `Lv ${level} (${available}/${max})`;
-          btn.disabled = available <= 0;
-          btn.onclick = () => castSpellAtLevel(id, level);
-          buttons.appendChild(btn);
-        }
+          `;
+          container.appendChild(div);
+        });
       }
 
-      if (!buttons.children.length) {
-        buttons.innerHTML = `<span class="hint">No available spell slot levels for this spell.</span>`;
-      }
+      renderSpellGroup("Cantrips", cantrips);
+      renderSpellGroup("Leveled Spells", leveled);
     }
 
-    function castSpellAtLevel(id, slotLevel) {
+    function showSpellSlotChoices(id) {
       const spell = spells.find(s => s.id === id);
       if (!spell || spell.level === "Cantrip") return;
 
-      const spellMinLevel = Number(spell.level);
-      if (slotLevel < spellMinLevel) {
-        showDicePop(`Need at least a level ${spellMinLevel} slot.`);
-        return;
+      document.querySelectorAll(".slot-choice-panel.active").forEach(panel => {
+        if (panel.id !== `slotChoices_${id}`) panel.classList.remove("active");
+      });
+
+      const panel = document.getElementById(`slotChoices_${id}`);
+      const buttons = document.getElementById(`slotChoiceButtons_${id}`);
+      if (!panel || !buttons) return;
+
+      buttons.innerHTML = "";
+      const minLevel = Math.max(1, Number(spell.level) || 1);
+      let hasAnySlot = false;
+
+      for (let level = minLevel; level <= 9; level++) {
+        const max = Number(document.getElementById(`spell${level}_max`)?.value) || 0;
+        if (max <= 0) continue;
+
+        hasAnySlot = true;
+        const used = getUsedSpellSlots(level);
+        const available = Math.max(0, max - used);
+
+        const btn = document.createElement("button");
+        btn.className = "mini-button success";
+        btn.textContent = `Lv ${level}: ${available}/${max}`;
+        btn.disabled = available <= 0;
+        btn.onclick = () => castSpellAtLevel(id, level);
+        buttons.appendChild(btn);
       }
 
-      const max = Number(document.getElementById(`spell${slotLevel}_max`)?.value) || 0;
-      const used = getUsedSpellSlots(slotLevel);
-
-      if (used >= max) {
-        showDicePop(`No level ${slotLevel} spell slots left.`);
-        return;
+      if (!hasAnySlot) {
+        buttons.innerHTML = `<span class="hint">No spell slots available for this spell level.</span>`;
       }
 
-      const next = document.querySelector(`#spell${slotLevel}_bubbles .slot-bubble:not(.used)`);
-      if (next) next.classList.add("used");
-      updateSpellSummary(slotLevel);
-
-      if (spell.concentration) {
-        const c = document.getElementById("condition_concentration");
-        if (c) c.classList.add("active");
-      }
-
-      const row = document.getElementById(`castOptions_${id}`);
-      if (row) row.classList.remove("active");
-
-      showDicePop(`Cast ${spell.name} using a level ${slotLevel} slot.`);
-      saveData();
+      panel.classList.toggle("active");
     }
 
-    function toggleConcentration(id) {
-      const c = document.getElementById("condition_concentration");
-      if (c) c.classList.toggle("active");
+    function castSpellAtLevel(id, level) {
+      const spell = spells.find(s => s.id === id);
+      if (!spell || spell.level === "Cantrip") return;
+
+      const minLevel = Math.max(1, Number(spell.level) || 1);
+      if (level < minLevel) {
+        showDicePop(`This spell needs a level ${minLevel}+ slot.`);
+        return;
+      }
+
+      const max = Number(document.getElementById(`spell${level}_max`)?.value) || 0;
+      const used = getUsedSpellSlots(level);
+
+      if (max <= 0 || used >= max) {
+        showDicePop(`No level ${level} spell slots left.`);
+        return;
+      }
+
+      const slot = document.querySelector(`#spell${level}_bubbles .slot-bubble:not(.used)`);
+      if (slot) slot.classList.add("used");
+      updateSpellSummary(level);
+
+      if (spell.concentration) {
+        const concentration = document.getElementById("condition_concentration");
+        if (concentration) concentration.classList.add("active");
+      }
+
+      const panel = document.getElementById(`slotChoices_${id}`);
+      if (panel) panel.classList.remove("active");
+
+      const text = `Cast ${spell.name} using a level ${level} slot.`;
+      showDicePop(text);
+      addRollHistory(text);
       saveData();
     }
 
@@ -3525,6 +3712,49 @@
       saveData();
     }
 
+
+    function addRollHistory(text) {
+      const entry = {
+        text,
+        time: new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+      };
+
+      rollHistory.unshift(entry);
+      rollHistory = rollHistory.slice(0, 12);
+      renderRollHistory();
+      saveData();
+    }
+
+    function renderRollHistory() {
+      const list = document.getElementById("rollHistoryList");
+      if (!list) return;
+
+      if (!rollHistory.length) {
+        list.innerHTML = `<div class="hint">No rolls yet.</div>`;
+        return;
+      }
+
+      list.innerHTML = rollHistory.map(entry => `
+        <div class="roll-history-entry">
+          <div>${entry.text}</div>
+          <div class="roll-history-time">${entry.time}</div>
+        </div>
+      `).join("");
+    }
+
+    function toggleRollHistory() {
+      const panel = document.getElementById("rollHistoryPanel");
+      if (panel) panel.classList.toggle("active");
+      renderRollHistory();
+    }
+
+    function clearRollHistory() {
+      rollHistory = [];
+      renderRollHistory();
+      saveData();
+    }
+
+
     function rollDie(sides) {
       return Math.floor(Math.random() * sides) + 1;
     }
@@ -3559,6 +3789,7 @@
       const text = `${label}: ${detail} ${formatBonus(bonus)} = ${total}`;
       document.getElementById("diceResult").textContent = text;
       showDicePop(text);
+      addRollHistory(text);
     }
 
     function rollDamage(label, diceText, bonus) {
@@ -3583,6 +3814,7 @@
       const text = `${label}: ${diceText} [${rolls.join(", ")}] ${formatBonus(bonus)} = ${total}`;
       document.getElementById("diceResult").textContent = text;
       showDicePop(text);
+      addRollHistory(text);
     }
 
     function shortRest() {
@@ -3682,6 +3914,7 @@
       const text = `Result: ${detail}`;
       document.getElementById("diceResult").textContent = text;
       showDicePop(text);
+      addRollHistory(text);
     }
 
     function rollCustomDice() {
@@ -3710,6 +3943,7 @@
 
       document.getElementById("diceResult").textContent = "Result: " + resultText;
       showDicePop(resultText);
+      addRollHistory(resultText);
     }
 
     function rollAbilityCheck(ability, label) {
@@ -4190,6 +4424,7 @@
       data.inventoryItems = inventoryItems;
       data.classFeatures = classFeatures;
       data.turnState = turnState;
+      data.rollHistory = rollHistory;
 
       spellLevels.forEach(level => {
         data[`spell${level}_used`] = getUsedSpellSlots(level);
@@ -4282,6 +4517,7 @@
       inventoryItems = Array.isArray(data.inventoryItems) ? data.inventoryItems : [];
       classFeatures = Array.isArray(data.classFeatures) ? data.classFeatures : [];
       turnState = data.turnState || { Action: false, Bonus: false, Reaction: false, Movement: false };
+      rollHistory = Array.isArray(data.rollHistory) ? data.rollHistory : [];
 
       renderAttacks();
       renderSpells();
@@ -4384,6 +4620,12 @@
 
       document.getElementById("combatMode").addEventListener("change", () => {
         document.getElementById("app").classList.toggle("combat-mode", document.getElementById("combatMode").checked);
+    document.getElementById("app").classList.toggle("play-mode", document.getElementById("playMode").checked);
+        saveData();
+      });
+
+      document.getElementById("playMode").addEventListener("change", () => {
+        document.getElementById("app").classList.toggle("play-mode", document.getElementById("playMode").checked);
         saveData();
       });
 
@@ -4422,12 +4664,14 @@
     renderInventory();
     renderFeatures();
     renderTurnTracker();
+    renderRollHistory();
     loadCollapsedSections();
     setupListeners();
     updateModifiers();
     updateDeathStatus();
     renderTurnTracker();
     document.getElementById("app").classList.toggle("combat-mode", document.getElementById("combatMode").checked);
+    document.getElementById("app").classList.toggle("play-mode", document.getElementById("playMode").checked);
   </script>
 </body>
 </html>
