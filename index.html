@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>D&D Character Sheet v32</title>
+  <title>D&D Character Sheet v33</title>
   <style>
     :root {
       --bg: #111827;
@@ -1075,6 +1075,44 @@
       }
     }
 
+
+    /* v33 reliable mode behavior */
+    #app.play-mode [data-section="attackBuilder"],
+    #app.play-mode [data-section="spellBuilder"],
+    #app.play-mode [data-section="featureBuilder"],
+    #app.play-mode [data-section="inventoryBuilder"],
+    #app.play-mode .quick-add-btn,
+    #app.play-mode .inline-edit,
+    #app.play-mode .edit-only,
+    #app.play-mode button[onclick^="edit"],
+    #app.play-mode button[onclick^="delete"],
+    #app.play-mode .sheet-top-actions .edit-action {
+      display: none !important;
+    }
+
+    #app.combat-mode .non-combat {
+      display: none !important;
+    }
+
+    #app.combat-mode [data-section="character"],
+    #app.combat-mode [data-section="abilities"],
+    #app.combat-mode [data-section="saves"],
+    #app.combat-mode [data-section="skills"],
+    #app.combat-mode [data-section="featureBuilder"],
+    #app.combat-mode [data-section="spellBuilder"],
+    #app.combat-mode [data-section="inventoryBuilder"],
+    #app.combat-mode [data-section="inventory"],
+    #app.combat-mode [data-section="notes"],
+    #app.combat-mode [data-section="dice"],
+    #app.combat-mode .search-box,
+    #app.combat-mode .sheet-top-actions .edit-action {
+      display: none !important;
+    }
+
+    #app.combat-mode .turn-tracker {
+      display: block !important;
+    }
+
     .footer {
       text-align: center;
       color: var(--hint);
@@ -1187,13 +1225,13 @@
   </div>
 
   <div class="container" id="app">
-    <h1>D&D Character Sheet v32</h1>
+    <h1>D&D Character Sheet v33</h1>
 
     <div class="sheet-top-actions">
       <button class="ghost" onclick="goToSheetHome()">Sheet Home</button>
       <button class="purple" onclick="copySheetCode()">Copy Sheet Code</button>
       <button class="success" onclick="saveData()">Save Current Sheet</button>
-      <button class="purple edit-action" onclick="editSheetCode()">Edit Sheet Code</button>
+      <button class="purple edit-action edit-only" onclick="editSheetCode()">Edit Sheet Code</button>
       <button class="success" onclick="exportPrintableSheet()">Export PDF</button>
       <button class="danger" onclick="deleteCurrentSheet()">Delete Sheet</button>
     </div>
@@ -2201,11 +2239,11 @@
 
 
     function getSheetStorageKey(id) {
-      return "dndCharacterSheetV32_" + id;
+      return "dndCharacterSheetV33_" + id;
     }
 
     function getCollapsedStorageKey(id) {
-      return "dndSheetV32Collapsed_" + id;
+      return "dndSheetV33Collapsed_" + id;
     }
 
     function getUserSheetsCollection() {
@@ -2311,7 +2349,7 @@
       const code = generateSheetCode();
 
       currentSheetId = code;
-      localStorage.setItem("dndActiveSheetIdV32", currentSheetId);
+      localStorage.setItem("dndActiveSheetIdV33", currentSheetId);
 
       suppressAutoSave = true;
       clearCurrentForm();
@@ -2350,7 +2388,7 @@
       }
 
       currentSheetId = code;
-      localStorage.setItem("dndActiveSheetIdV32", currentSheetId);
+      localStorage.setItem("dndActiveSheetIdV33", currentSheetId);
 
       suppressAutoSave = true;
       clearCurrentForm(false);
@@ -2361,7 +2399,7 @@
       if (!loaded) {
         alert("No sheet found with that code.");
         currentSheetId = null;
-        localStorage.removeItem("dndActiveSheetIdV32");
+        localStorage.removeItem("dndActiveSheetIdV33");
         document.getElementById("homeScreen").classList.remove("hidden");
         showLoadSheets();
         return;
@@ -2375,7 +2413,7 @@
       renderRollHistory();
 
       const combatToggle = document.getElementById("combatMode");
-      document.getElementById("app").classList.toggle("combat-mode", combatToggle && combatToggle.checked);
+      applyDisplayModes();
 
       document.getElementById("homeScreen").classList.add("hidden");
       showDicePop("Sheet loaded.");
@@ -2389,7 +2427,7 @@
       localStorage.removeItem(getCollapsedStorageKey(id));
       if (currentSheetId === id) {
         currentSheetId = null;
-        localStorage.removeItem("dndActiveSheetIdV32");
+        localStorage.removeItem("dndActiveSheetIdV33");
       }
       await renderSheetList();
     }
@@ -2450,7 +2488,7 @@
         localStorage.removeItem(getCollapsedStorageKey(currentCode));
 
         currentSheetId = newCode;
-        localStorage.setItem("dndActiveSheetIdV32", currentSheetId);
+        localStorage.setItem("dndActiveSheetIdV33", currentSheetId);
 
         await saveData();
 
@@ -2471,7 +2509,7 @@
       localStorage.removeItem(getSheetStorageKey(id));
       localStorage.removeItem(getCollapsedStorageKey(id));
       currentSheetId = null;
-      localStorage.removeItem("dndActiveSheetIdV32");
+      localStorage.removeItem("dndActiveSheetIdV33");
       clearCurrentForm();
       document.getElementById("homeScreen").classList.remove("hidden");
       showHomeMain();
@@ -2522,7 +2560,7 @@
     }
 
     async function initializeSheetDatabase() {
-      const activeId = localStorage.getItem("dndActiveSheetIdV32");
+      const activeId = localStorage.getItem("dndActiveSheetIdV33");
 
       if (activeId) {
         currentSheetId = activeId;
@@ -3154,8 +3192,8 @@
             <div>
               ${feature.maxUses > 0 ? `<button class="mini-button purple" onclick="useFeature(${feature.id})">Use</button>` : ""}
               ${feature.maxUses > 0 ? `<button class="mini-button ghost" onclick="resetFeature(${feature.id})">Reset</button>` : ""}
-              <button class="mini-button ghost" onclick="editFeature(${feature.id})">Edit</button>
-              <button class="mini-button danger" onclick="deleteFeature(${feature.id})">Delete</button>
+              <button class="mini-button ghost edit-only" onclick="editFeature(${feature.id})">Edit</button>
+              <button class="mini-button danger edit-only" onclick="deleteFeature(${feature.id})">Delete</button>
             </div>
           </div>
           <div class="inline-edit" id="edit_feature_${feature.id}">
@@ -3264,8 +3302,8 @@
               <div class="inventory-sub">${item.notes || ""}</div>
             </div>
             <div>
-              <button class="mini-button ghost" onclick="editInventoryItem(${item.id})">Edit</button>
-              <button class="mini-button danger" onclick="deleteInventoryItem(${item.id})">Delete</button>
+              <button class="mini-button ghost edit-only" onclick="editInventoryItem(${item.id})">Edit</button>
+              <button class="mini-button danger edit-only" onclick="deleteInventoryItem(${item.id})">Delete</button>
             </div>
             <div class="inline-edit" id="edit_inventory_${item.id}" style="grid-column: 1 / -1;">
               <div class="grid-wide">
@@ -3343,8 +3381,8 @@
           <div>
             <button class="mini-button purple" onclick="rollAttack(${attack.id})">Roll Hit</button>
             <button class="mini-button purple" onclick="rollAttackDamage(${attack.id})">Roll Dmg</button>
-            <button class="mini-button ghost" onclick="editAttack(${attack.id})">Edit</button>
-            <button class="mini-button danger" onclick="deleteAttack(${attack.id})">Delete</button>
+            <button class="mini-button ghost edit-only" onclick="editAttack(${attack.id})">Edit</button>
+            <button class="mini-button danger edit-only" onclick="deleteAttack(${attack.id})">Delete</button>
           </div>
         `;
         container.appendChild(div);
@@ -4537,6 +4575,7 @@
 
       suppressAutoSave = false;
       updateStickyBar();
+      applyDisplayModes();
       return true;
     }
 
@@ -4606,6 +4645,18 @@
       }
     }
 
+
+    function applyDisplayModes() {
+      const app = document.getElementById("app");
+      const combat = document.getElementById("combatMode")?.checked || false;
+      const play = document.getElementById("playMode")?.checked || false;
+
+      if (!app) return;
+
+      app.classList.toggle("combat-mode", combat);
+      app.classList.toggle("play-mode", play);
+    }
+
     function setupListeners() {
       document.querySelectorAll("input, textarea, select").forEach(element => {
         element.addEventListener("input", () => {
@@ -4619,13 +4670,12 @@
       });
 
       document.getElementById("combatMode").addEventListener("change", () => {
-        document.getElementById("app").classList.toggle("combat-mode", document.getElementById("combatMode").checked);
-    document.getElementById("app").classList.toggle("play-mode", document.getElementById("playMode").checked);
+        applyDisplayModes();
         saveData();
       });
 
       document.getElementById("playMode").addEventListener("change", () => {
-        document.getElementById("app").classList.toggle("play-mode", document.getElementById("playMode").checked);
+        applyDisplayModes();
         saveData();
       });
 
@@ -4668,10 +4718,10 @@
     loadCollapsedSections();
     setupListeners();
     updateModifiers();
+    applyDisplayModes();
     updateDeathStatus();
     renderTurnTracker();
-    document.getElementById("app").classList.toggle("combat-mode", document.getElementById("combatMode").checked);
-    document.getElementById("app").classList.toggle("play-mode", document.getElementById("playMode").checked);
+    applyDisplayModes();
   </script>
 </body>
 </html>
