@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>D&D Character Sheet v33</title>
+  <title>D&D Character Sheet v34</title>
   <style>
     :root {
       --bg: #111827;
@@ -1113,6 +1113,25 @@
       display: block !important;
     }
 
+
+    .force-hidden {
+      display: none !important;
+    }
+
+    .mode-hidden {
+      display: none !important;
+    }
+
+    .mode-visible {
+      display: block !important;
+    }
+
+    .saved-attack .mode-visible,
+    .spell-card .mode-visible,
+    .feature-card .mode-visible {
+      display: inline-block !important;
+    }
+
     .footer {
       text-align: center;
       color: var(--hint);
@@ -1225,7 +1244,7 @@
   </div>
 
   <div class="container" id="app">
-    <h1>D&D Character Sheet v33</h1>
+    <h1>D&D Character Sheet v34</h1>
 
     <div class="sheet-top-actions">
       <button class="ghost" onclick="goToSheetHome()">Sheet Home</button>
@@ -1237,18 +1256,18 @@
     </div>
 
     <div class="combat-toggle">
-      <input type="checkbox" id="combatMode">
+      <input type="checkbox" id="combatMode" onchange="applyDisplayModes(); saveData();">
       <strong>Quick Combat Mode</strong>
       <span class="hint">Shows only the most useful combat sections.</span>
     </div>
 
     <div class="mode-toggle">
-      <input type="checkbox" id="playMode">
+      <input type="checkbox" id="playMode" onchange="applyDisplayModes(); saveData();">
       <strong>Play Mode</strong>
       <span class="hint">Hides builders/editing and keeps the sheet focused for gameplay.</span>
     </div>
 
-    <div class="turn-tracker" data-section="turnTracker">
+    <div class="turn-tracker" data-section="turnTracker" style="display:none;">
       <div class="turn-top">
         <strong>Turn Tracker</strong>
         <button onclick="startTurn()" class="success">Start Turn / Reset</button>
@@ -2239,11 +2258,11 @@
 
 
     function getSheetStorageKey(id) {
-      return "dndCharacterSheetV33_" + id;
+      return "dndCharacterSheetV34_" + id;
     }
 
     function getCollapsedStorageKey(id) {
-      return "dndSheetV33Collapsed_" + id;
+      return "dndSheetV34Collapsed_" + id;
     }
 
     function getUserSheetsCollection() {
@@ -2349,7 +2368,7 @@
       const code = generateSheetCode();
 
       currentSheetId = code;
-      localStorage.setItem("dndActiveSheetIdV33", currentSheetId);
+      localStorage.setItem("dndActiveSheetIdV34", currentSheetId);
 
       suppressAutoSave = true;
       clearCurrentForm();
@@ -2388,7 +2407,7 @@
       }
 
       currentSheetId = code;
-      localStorage.setItem("dndActiveSheetIdV33", currentSheetId);
+      localStorage.setItem("dndActiveSheetIdV34", currentSheetId);
 
       suppressAutoSave = true;
       clearCurrentForm(false);
@@ -2399,7 +2418,7 @@
       if (!loaded) {
         alert("No sheet found with that code.");
         currentSheetId = null;
-        localStorage.removeItem("dndActiveSheetIdV33");
+        localStorage.removeItem("dndActiveSheetIdV34");
         document.getElementById("homeScreen").classList.remove("hidden");
         showLoadSheets();
         return;
@@ -2427,7 +2446,7 @@
       localStorage.removeItem(getCollapsedStorageKey(id));
       if (currentSheetId === id) {
         currentSheetId = null;
-        localStorage.removeItem("dndActiveSheetIdV33");
+        localStorage.removeItem("dndActiveSheetIdV34");
       }
       await renderSheetList();
     }
@@ -2488,7 +2507,7 @@
         localStorage.removeItem(getCollapsedStorageKey(currentCode));
 
         currentSheetId = newCode;
-        localStorage.setItem("dndActiveSheetIdV33", currentSheetId);
+        localStorage.setItem("dndActiveSheetIdV34", currentSheetId);
 
         await saveData();
 
@@ -2509,7 +2528,7 @@
       localStorage.removeItem(getSheetStorageKey(id));
       localStorage.removeItem(getCollapsedStorageKey(id));
       currentSheetId = null;
-      localStorage.removeItem("dndActiveSheetIdV33");
+      localStorage.removeItem("dndActiveSheetIdV34");
       clearCurrentForm();
       document.getElementById("homeScreen").classList.remove("hidden");
       showHomeMain();
@@ -2560,7 +2579,7 @@
     }
 
     async function initializeSheetDatabase() {
-      const activeId = localStorage.getItem("dndActiveSheetIdV33");
+      const activeId = localStorage.getItem("dndActiveSheetIdV34");
 
       if (activeId) {
         currentSheetId = activeId;
@@ -4646,15 +4665,80 @@
     }
 
 
+    function setModeHidden(selector, hidden) {
+      document.querySelectorAll(selector).forEach(el => {
+        el.classList.toggle("mode-hidden", hidden);
+      });
+    }
+
     function applyDisplayModes() {
-      const app = document.getElementById("app");
       const combat = document.getElementById("combatMode")?.checked || false;
       const play = document.getElementById("playMode")?.checked || false;
+      const app = document.getElementById("app");
 
-      if (!app) return;
+      if (app) {
+        app.classList.toggle("combat-mode", combat);
+        app.classList.toggle("play-mode", play);
+      }
 
-      app.classList.toggle("combat-mode", combat);
-      app.classList.toggle("play-mode", play);
+      // Reset anything previously hidden by modes.
+      document.querySelectorAll(".mode-hidden").forEach(el => el.classList.remove("mode-hidden"));
+
+      // PLAY MODE: hide building/editing tools, but keep created cards.
+      if (play) {
+        setModeHidden('[data-section="attackBuilder"]', true);
+        setModeHidden('[data-section="spellBuilder"]', true);
+        setModeHidden('[data-section="featureBuilder"]', true);
+        setModeHidden('[data-section="inventoryBuilder"]', true);
+        setModeHidden('.quick-add-btn', true);
+        setModeHidden('.inline-edit', true);
+        setModeHidden('.edit-only', true);
+        setModeHidden('button[onclick^="edit"]', true);
+        setModeHidden('button[onclick^="delete"]', true);
+      }
+
+      // COMBAT MODE: show only combat-useful sections.
+      if (combat) {
+        const allowed = new Set([
+          "hp",
+          "mainStats",
+          "attacks",
+          "conditions",
+          "spells",
+          "spellCards",
+          "features",
+          "turnTracker"
+        ]);
+
+        document.querySelectorAll("[data-section]").forEach(section => {
+          const sectionName = section.getAttribute("data-section");
+          if (!allowed.has(sectionName)) {
+            section.classList.add("mode-hidden");
+          }
+        });
+
+        // Combat mode should also hide top editing/search clutter.
+        setModeHidden(".search-box", true);
+        setModeHidden(".sheet-top-actions .edit-action", true);
+
+        const turnTracker = document.querySelector('[data-section="turnTracker"]');
+        if (turnTracker) {
+          turnTracker.classList.remove("mode-hidden");
+          turnTracker.style.display = "block";
+        }
+      } else {
+        const turnTracker = document.querySelector('[data-section="turnTracker"]');
+        if (turnTracker) {
+          turnTracker.style.display = "none";
+        }
+      }
+
+      // If both are active, Play Mode still removes edit/delete inside the combat sections.
+      if (play) {
+        setModeHidden('.edit-only', true);
+        setModeHidden('button[onclick^="edit"]', true);
+        setModeHidden('button[onclick^="delete"]', true);
+      }
     }
 
     function setupListeners() {
